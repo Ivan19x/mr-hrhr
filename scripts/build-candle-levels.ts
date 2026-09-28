@@ -6,13 +6,13 @@
 // Output: src/data/real/levels/candles.json (compact; the raw cache can then be deleted).
 // Run scripts/build-all-levels.ts afterwards to refresh the level index.
 import { readFile, writeFile } from "node:fs/promises";
-import { CTX, D, loadContexts, type Cand, type DS } from "./detect.ts";
+import { CTX, D, isMacro, loadContexts, type Cand, type DS } from "./detect.ts";
 import type { AnswerMark, Candle, Level, Question } from "../src/types/game.ts";
 
 const CACHE = new URL("./.cache/charts/", import.meta.url);
 const index: { id: string }[] = JSON.parse(await readFile(new URL("index.json", CACHE), "utf8"));
 const all: DS[] = [];
-for (const { id } of index) all.push(JSON.parse(await readFile(new URL(`${id}.json`, CACHE), "utf8")));
+for (const { id } of index) if (!isMacro(id)) all.push(JSON.parse(await readFile(new URL(`${id}.json`, CACHE), "utf8")));
 loadContexts(all);
 
 type Pattern = {

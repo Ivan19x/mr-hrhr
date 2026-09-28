@@ -14,6 +14,7 @@ type Example = {
   rows: number[][];
   pts: Record<string, number>;
   lv: Record<string, number>;
+  alt?: { label: string; rows: number[][] };
 };
 
 const EX = raw as unknown as Record<string, Example>;
@@ -26,6 +27,13 @@ export type Real = {
   closes: number[];
   pre: number;
   volume?: number[];
+  /** Aggressive (taker) buy volume per candle, when stored: delta = 2 × takerBuy − volume. */
+  takerBuy?: number[];
+  /** A second market over the same candles (e.g. GBP/USD beside EUR/USD). */
+  alt?: { label: string; candles: OHLC[] };
+  tf: string;
+  /** Unix time of the first displayed candle. */
+  t0: number;
   pts: Record<string, number>;
   lv: Record<string, number>;
   source: string;
@@ -43,6 +51,8 @@ export function real(id: string): Real {
   const all = e.rows.map((r) => [r[0]!, r[1]!, r[2]!, r[3]!] as OHLC);
   const candles = all.slice(e.pre);
   const volume = e.rows[0]!.length > 4 ? e.rows.slice(e.pre).map((r) => r[4]!) : undefined;
+  const takerBuy = e.rows[0]!.length > 5 ? e.rows.slice(e.pre).map((r) => r[5]!) : undefined;
+  const alt = e.alt ? { label: e.alt.label, candles: e.alt.rows.slice(e.pre).map((r) => [r[0]!, r[1]!, r[2]!, r[3]!] as OHLC) } : undefined;
   const date = new Date(e.t0 * 1000).toLocaleDateString("en-GB", { month: "short", year: "numeric", ...(e.tf === "1D" ? {} : { day: "numeric" }) });
   const i = (name: string) => {
     const v = e.pts[name];
@@ -55,6 +65,10 @@ export function real(id: string): Real {
     closes: candles.map((c) => c[3]),
     pre: e.pre,
     ...(volume ? { volume } : {}),
+    ...(takerBuy ? { takerBuy } : {}),
+    ...(alt ? { alt } : {}),
+    tf: e.tf,
+    t0: e.t0,
     pts: e.pts,
     lv: e.lv,
     source: `Real chart · ${e.label} · ${TF[e.tf] ?? e.tf} · ${date}`,

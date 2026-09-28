@@ -42,6 +42,12 @@ type Props = {
   exitMarker?: { i: number; price: number; color: string } | undefined;
   onLineDrag?: (id: DragLineId, price: number) => void;
   height?: number;
+  /**
+   * Fixed frame: how many candles the chart will hold and the price range they span.
+   * The fitted view shows the whole frame from the first candle, so forming candles
+   * fill a canvas that never jumps or rescales.
+   */
+  frame?: { count: number; lo: number; hi: number } | undefined;
 };
 
 export function CandleChart({
@@ -61,7 +67,10 @@ export function CandleChart({
   onLineDrag,
   exitMarker,
   height = 420,
+  frame,
 }: Props) {
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -118,8 +127,9 @@ export function CandleChart({
       timeScale: {
         borderVisible: true,
         borderColor: "rgba(139,147,167,0.25)",
-        rightOffset: 5,
-        minBarSpacing: 3,
+        rightOffset: 2,
+        minBarSpacing: 0.5,
+        maxBarSpacing: 600, // zoom in as far as a single candle
         // Candle numbers only — real dates and asset names are never shown.
         tickMarkFormatter: (time: number) => `#${time}`,
       },
@@ -139,6 +149,12 @@ export function CandleChart({
       borderUpColor: COLOR_SETS[chartColors].up,
       borderDownColor: COLOR_SETS[chartColors].down,
       borderVisible: true,
+      // Fitted view: the fixed frame's price range. Zoomed in: fit the candles in view.
+      autoscaleInfoProvider: (original: () => import("lightweight-charts").AutoscaleInfo | null) => {
+        const f = frameRef.current;
+        if (autoFitRef.current && f && f.hi > f.lo) return { priceRange: { minValue: f.lo, maxValue: f.hi } };
+        return original();
+      },
     });
     chart.subscribeCrosshairMove((param) => {
       setHover(param.time === undefined ? null : Number(param.time));
@@ -179,6 +195,13 @@ export function CandleChart({
     });
   }, [chartColors]);
 
+  /** Fitted view: the whole fixed frame (first candle on the left, empty slots to the right). */
+  const fitView = (chart: IChartApi) => {
+    const f = frameRef.current;
+    if (f && f.count > 0) chart.timeScale().setVisibleLogicalRange({ from: -0.8, to: f.count + 0.8 });
+    else chart.timeScale().fitContent();
+  };
+
   // Data changes.
   useEffect(() => {
     const series = seriesRef.current;
@@ -188,24 +211,44 @@ export function CandleChart({
     const ref = candles[candles.length - 1]?.c ?? 1;
     const precision = ref >= 1000 ? 1 : ref >= 100 ? 2 : ref >= 10 ? 3 : 5;
     series.applyOptions({ priceFormat: { type: "price", precision, minMove: 10 ** -precision } });
-    series.setData(
-      candles.map((c) => ({ time: c.i as unknown as import("lightweight-charts").Time, open: c.o, high: c.h, low: c.l, close: c.c })),
-    );
+    type T = import("lightweight-charts").Time;
+    const rows: ({ time: T; open: number; high: number; low: number; close: number } | { time: T })[] = candles.map((c) => ({ time: c.i as unknown as T, open: c.o, high: c.h, low: c.l, close: c.c }));
+    // Empty slots for candles still to come, so the frame's width is fixed from the start.
+    const lastI = candles[candles.length - 1]?.i ?? -1;
+    for (let k = candles.length; k < (frame?.count ?? 0); k++) rows.push({ time: (lastI + 1 + k - candles.length) as unknown as T });
+    series.setData(rows);
     const grew = candles.length - lastLenRef.current;
     if (lastLenRef.current === 0 || grew < 0) autoFitRef.current = true;
-    if (autoFitRef.current) chart.timeScale().fitContent();
-    else if (grew > 0) {
+    // New candles must always be visible: dragging the price axis switches it to a
+    // manual range, so hand it back to auto-scale whenever the replay adds candles.
+    if (grew !== 0) chart.priceScale("right").applyOptions({ autoScale: true });
+    if (autoFitRef.current) fitView(chart);
+    else if (grew > 0 && !frame) {
       // Keep the player's zoom level and slide along with the new candles.
       const r = chart.timeScale().getVisibleLogicalRange();
-      if (r) chart.timeScale().setVisibleLogicalRange({ from: r.from + grew, to: r.to + grew });
+      if (r) {
+        let from = r.from + grew;
+        let to = r.to + grew;
+        // Whatever the player did to the view, the newest candle stays on screen.
+        const last = candles.length - 1;
+        if (last > to - 1 || last < from) {
+          const span = to - from;
+          to = last + 3;
+          from = to - span;
+        }
+        chart.timeScale().setVisibleLogicalRange({ from, to });
+      }
     }
-    lastLenRef.current = candles.length;
+    lastLenRef.current = Math.max(candles.length, frame?.count ?? 0);
     redraw();
-  }, [candles, redraw]);
+  }, [candles, frame?.count, frame?.lo, frame?.hi, redraw]);
 
   const fitAll = useCallback(() => {
     autoFitRef.current = true;
-    chartRef.current?.timeScale().fitContent();
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.priceScale("right").applyOptions({ autoScale: true });
+    fitView(chart);
   }, []);
 
   /** Keep a visible range inside the data (plus a little room on the right). */
@@ -234,8 +277,10 @@ export function CandleChart({
     const to = anchor + (r.to - anchor) * factor;
     // Zoomed all the way out: show every candle filling the width, like a broker chart.
     if (to - from >= n + 5) return fitAll();
-    if (to - from < 10) return; // max zoom-in: about 10 candles across
+    if (to - from < 1.5) return; // max zoom-in: a single candle
     autoFitRef.current = false;
+    // Zooming out should always show the full height of the candles in view.
+    if (factor > 1) chartRef.current?.priceScale("right").applyOptions({ autoScale: true });
     ts.setVisibleLogicalRange(clampRange(from, to));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitAll]);
@@ -267,8 +312,13 @@ export function CandleChart({
       }
     };
     // Dragging the chart itself (no tool active) also counts as taking control of the view.
+    // Pressing the price axis only rescales prices, so it doesn't count.
     const onDown = (e: PointerEvent) => {
-      if (e.target instanceof HTMLCanvasElement) autoFitRef.current = false;
+      if (!(e.target instanceof HTMLCanvasElement)) return;
+      const axis = chartRef.current?.priceScale("right").width() ?? 0;
+      const plotRight = (chartRef.current ? el.querySelector(".tv-lightweight-charts")?.getBoundingClientRect().right : undefined) ?? el.getBoundingClientRect().right;
+      if (e.clientX >= plotRight - axis) return;
+      autoFitRef.current = false;
     };
     el.addEventListener("wheel", onWheel, { passive: false, capture: true });
     el.addEventListener("pointerdown", onDown, { capture: true });

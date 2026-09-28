@@ -3,7 +3,7 @@
 A trading school as a game. Players learn to trade on **real historical market charts**: they mark what they see (candle patterns, swings, levels, fair value gaps, order blocks…), plan a trade with a stop loss and target, answer questions about their reasoning, then watch what the real market did next.
 
 - **16 strategies, 176 levels** across 4 tiers, from candlesticks to confluence. Every level is a real chart (crypto, forex, gold, indices, stocks).
-- **Academy**: 75 lessons with real-chart examples, interactive widgets and quizzes, plus a glossary covering the full syllabus.
+- **Academy**: 155 lessons in 25 modules (core course 1–12, advanced course 13–25: smart money, ICT time and entry models, Wyckoff, order flow, the professional trader). Every chart concept is shown on a real market chart; each lesson ends with a quiz. Plus a 316-term glossary linked to the lessons and a Resources page.
 - **Analyst**: reviews every trade and recommends what to work on.
 - **Modes**: Campaign, Practice, Timed Challenge, Daily Challenge, weekly Ranked Season.
 - Profiles are stored locally in the browser (no server yet).
@@ -31,6 +31,7 @@ Chart data is downloaded once, cut into small sections, and baked into `src/data
 
 ```sh
 npm run charts:update   # download → cut lesson examples → build all levels
+# Lesson examples already chosen are kept; `node scripts/extract-examples.ts --all` re-picks them all.
 ```
 
 ## Project layout

@@ -9,6 +9,7 @@ import { currentUserSync } from "@/services/authService";
 import { CandleFormation } from "./CandleFormation";
 import { closeUp } from "@/data/academy/real";
 import { RankBadge } from "./RankBadge";
+import { TOTAL_LESSONS } from "@/data/academy";
 
 const KEY = () => `mrhrhr.guideSeen.${currentUserSync()?.id ?? "_"}`;
 
@@ -45,7 +46,7 @@ const STEPS: Step[] = [
   {
     target: "/academy",
     title: "Academy: learn",
-    body: "75 lessons from 'what is trading' to smart-money concepts, each with real chart examples and a quiz. There's also a glossary of every term.",
+    body: `${TOTAL_LESSONS} lessons from 'what is trading' to institutional concepts, each with real chart examples and a quiz. There's also a glossary of every term and a resources page.`,
     art: "candle",
   },
   {

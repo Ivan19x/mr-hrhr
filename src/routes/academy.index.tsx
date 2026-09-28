@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BookOpen, CheckCircle2, ChevronRight, Search } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Library, Search } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useProfile } from "@/hooks/use-profile";
-import { MODULES, TOTAL_LESSONS, ALL_LESSONS } from "@/data/academy";
+import { MODULES, TOTAL_LESSONS, ALL_LESSONS, CORE_MODULES } from "@/data/academy";
+import type { Module } from "@/data/academy/types";
 
 export const Route = createFileRoute("/academy/")({
   head: () => ({ meta: [{ title: "Academy — MR_HRHR" }] }),
@@ -27,9 +28,14 @@ function AcademyPage() {
             From what a market is and how brokers connect to it, through candles, charts, patterns and indicators, to complete strategies and pro risk management.
           </p>
         </div>
-        <Link to="/glossary" className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm hover:border-electric">
-          <Search className="h-4 w-4" /> Glossary of terms
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/glossary" className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm hover:border-electric">
+            <Search className="h-4 w-4" /> Glossary of terms
+          </Link>
+          <Link to="/resources" className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm hover:border-electric">
+            <Library className="h-4 w-4" /> Resources
+          </Link>
+        </div>
       </div>
 
       <div className="panel mt-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
@@ -54,8 +60,24 @@ function AcademyPage() {
         )}
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {MODULES.map((m, mi) => {
+      {[
+        { title: "Core course", text: "Modules 1–12: from zero to complete strategies and risk management.", list: MODULES.filter((m) => m.n <= CORE_MODULES) },
+        { title: "Advanced course", text: "Modules 13–25: smart money concepts, ICT time and entry models, Wyckoff, order flow and the professional trader.", list: MODULES.filter((m) => m.n > CORE_MODULES) },
+      ].map((part) => (
+        <section key={part.title} className="mt-10">
+          <h2 className="text-xl font-black">{part.title}</h2>
+          <p className="text-sm text-muted-foreground">{part.text}</p>
+          <ModuleGrid modules={part.list} done={done} />
+        </section>
+      ))}
+    </AppShell>
+  );
+}
+
+function ModuleGrid({ modules, done }: { modules: Module[]; done: (id: string) => boolean }) {
+  return (
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {modules.map((m, mi) => {
           const mDone = m.lessons.filter((l) => done(l.id)).length;
           return (
             <motion.section
@@ -100,6 +122,5 @@ function AcademyPage() {
           );
         })}
       </div>
-    </AppShell>
   );
 }

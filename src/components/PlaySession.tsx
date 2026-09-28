@@ -514,6 +514,17 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
       ]
     : [];
 
+  // Fixed chart frame: everything up to the decision candle (plus the trade lines)
+  // while playing, the whole chart once the result plays out. Nothing about the
+  // future leaks before the result.
+  const showAll = phase === "result" || phase === "review";
+  const frameCandles = showAll ? level.candles : level.candles.slice(0, level.decisionIndex + 1);
+  const framePrices = [...frameCandles.flatMap((c) => [c.h, c.l]), ...(phase === "trade" ? [] : lines.map((l) => l.price))];
+  const fLo = Math.min(...framePrices);
+  const fHi = Math.max(...framePrices);
+  const fPad = (fHi - fLo) * 0.04;
+  const frame = { count: Math.max(frameCandles.length, visibleCount), lo: fLo - fPad, hi: fHi + fPad };
+
   // Fill the screen below the top bar and phase pills (desktop), fixed on phones.
   const [viewH, setViewH] = useState(800);
   useEffect(() => {
@@ -752,6 +763,7 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
                   : undefined
               }
               height={chartHeight}
+              frame={frame}
             />
 
             {/* Result banner */}

@@ -50,6 +50,7 @@ export function Diagram({ spec, className = "" }: { spec: DiagramSpec; className
   spec.candles?.forEach(([, h, l]) => vals.push(h, l));
   spec.line?.forEach((v) => vals.push(v));
   spec.overlays?.forEach((s) => s.values.forEach((v) => v != null && vals.push(v)));
+  spec.clouds?.forEach((cl) => [...cl.a, ...cl.b].forEach((v) => v != null && vals.push(v)));
   spec.notes?.forEach((nt) => {
     if ("p" in nt) vals.push(nt.p);
     if ("p1" in nt) vals.push(nt.p1);
@@ -82,6 +83,31 @@ export function Diagram({ spec, className = "" }: { spec: DiagramSpec; className
           <text x={W - PAD_R + 6} y={y(g) + 3} fontSize={9} fill="var(--color-muted-foreground)" className="font-num">
             {fmt(g, (hi - lo) / 4)}
           </text>
+        </g>
+      ))}
+
+      {/* Volume profile behind the price */}
+      {spec.profile &&
+        (() => {
+          const vmax = Math.max(...spec.profile.map((b) => b.v)) || 1;
+          const maxW = plotW * 0.3;
+          return spec.profile.map((b, k) => {
+            const top = Math.min(y(b.p1), y(b.p2));
+            const hgt = Math.max(1, Math.abs(y(b.p1) - y(b.p2)) - 1);
+            const wdt = (b.v / vmax) * maxW;
+            return <rect key={`vp${k}`} x={W - PAD_R - wdt} y={top} width={wdt} height={hgt} fill={TONE[b.color ?? "muted"]} opacity={0.35} />;
+          });
+        })()}
+      {spec.clouds?.map((cl, k) => (
+        <g key={`cl${k}`}>
+          {cl.a.map((a, i) => {
+            const b = cl.b[i];
+            const a2 = cl.a[i + 1];
+            const b2 = cl.b[i + 1];
+            if (a == null || b == null || a2 == null || b2 == null) return null;
+            const col = a >= b ? TONE.up : TONE.down;
+            return <polygon key={i} points={`${x(i)},${y(a)} ${x(i + 1)},${y(a2)} ${x(i + 1)},${y(b2)} ${x(i)},${y(b)}`} fill={col} opacity={0.16} />;
+          })}
         </g>
       ))}
 
@@ -161,6 +187,12 @@ function renderSeries(s: Series, k: number, x: (i: number) => number, y: (p: num
   if (cur.length) segs.push(cur);
   const lastIdx = s.values.length - 1 - [...s.values].reverse().findIndex((v) => v != null);
   const last = s.values[lastIdx];
+  if (s.dots)
+    return (
+      <g key={`s${k}`}>
+        {s.values.map((v, i) => (v == null ? null : <circle key={i} cx={x(i)} cy={y(v)} r={1.8} fill={TONE[s.color]} />))}
+      </g>
+    );
   return (
     <g key={`s${k}`}>
       {segs.map((pts, j) => (

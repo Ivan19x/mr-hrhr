@@ -137,6 +137,74 @@ function BlockView({ b }: { b: Block }) {
           </ul>
         </div>
       );
+    case "bars": {
+      const max = Math.max(...b.values.map((v) => Math.abs(v))) || 1;
+      const neg = b.values.some((v) => v < 0);
+      const H = 150;
+      const zero = neg ? H / 2 : H;
+      const w = 100 / b.values.length;
+      return (
+        <figure>
+          <svg viewBox={`0 0 100 ${H + 16}`} preserveAspectRatio="none" className="h-48 w-full rounded-lg bg-terminal" role="img">
+            <line x1={0} x2={100} y1={zero} y2={zero} stroke="var(--color-border)" strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
+            {b.values.map((v, k) => {
+              const h = (Math.abs(v) / max) * (neg ? H / 2 - 8 : H - 8);
+              return <rect key={k} x={k * w + w * 0.18} width={w * 0.64} y={v >= 0 ? zero - h : zero} height={Math.max(0.5, h)} fill={v >= 0 ? TONE.up : TONE.down} opacity={0.75} />;
+            })}
+          </svg>
+          <div className="mt-1 grid text-center text-[10px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${b.values.length}, minmax(0, 1fr))` }}>
+            {b.labels.map((l, k) => (
+              <span key={k}>
+                {l}
+                <br />
+                <span className={`font-num ${b.values[k]! >= 0 ? "text-up" : "text-down"}`}>
+                  {b.values[k]! >= 0 ? "+" : ""}
+                  {b.values[k]!.toFixed(1)}
+                  {b.unit ?? ""}
+                </span>
+              </span>
+            ))}
+          </div>
+          {b.caption && <figcaption className="mt-2 text-center text-xs text-muted-foreground">{b.caption}</figcaption>}
+        </figure>
+      );
+    }
+    case "matrix":
+      return (
+        <figure>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-center text-[11px]">
+              <thead>
+                <tr>
+                  <th className="bg-secondary px-1 py-1" />
+                  {b.names.map((n) => (
+                    <th key={n} className="bg-secondary px-1 py-1 font-semibold">
+                      {n}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {b.m.map((row, i) => (
+                  <tr key={i}>
+                    <th className="bg-secondary px-2 py-1 text-left font-semibold">{b.names[i]}</th>
+                    {row.map((v, j) => (
+                      <td
+                        key={j}
+                        className="font-num px-1 py-1"
+                        style={{ background: `color-mix(in srgb, ${v >= 0 ? TONE.up : TONE.down} ${Math.round(Math.abs(v) * 70)}%, transparent)` }}
+                      >
+                        {v.toFixed(2)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {b.caption && <figcaption className="mt-2 text-center text-xs text-muted-foreground">{b.caption}</figcaption>}
+        </figure>
+      );
     case "widget":
       return b.name === "candleLab" ? (
         <CandleLab />

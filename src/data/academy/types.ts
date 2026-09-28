@@ -12,7 +12,7 @@ export type Note =
   | { k: "bracket"; i: number; p1: number; p2: number; text: string; color?: Tone; side?: "left" | "right" }
   | { k: "vline"; i: number; text?: string; color?: Tone };
 
-export type Series = { values: (number | null)[]; color: Tone; label?: string; dash?: boolean };
+export type Series = { values: (number | null)[]; color: Tone; label?: string; dash?: boolean; /** Draw as dots (e.g. Parabolic SAR). */ dots?: boolean };
 
 export type Pane = {
   label: string;
@@ -37,6 +37,10 @@ export type DiagramSpec = {
   pad?: number;
   /** Shown in the corner, e.g. "Real chart · BTC/USDT · 4-hour · Mar 2026". */
   source?: string;
+  /** Volume-by-price bars drawn from the right edge (volume profile). */
+  profile?: { p1: number; p2: number; v: number; color?: Tone }[];
+  /** Shaded area between two series (e.g. the Ichimoku cloud): green where a ≥ b, red otherwise. */
+  clouds?: { a: (number | null)[]; b: (number | null)[] }[];
 };
 
 export type Block =
@@ -49,7 +53,11 @@ export type Block =
   | { t: "table"; head: string[]; rows: string[][] }
   | { t: "flow"; steps: { title: string; text: string }[] }
   | { t: "spot"; items: string[] }
-  | { t: "widget"; name: "candleLab" | "marketMap" | "chartTour" | "positionSizer" | "expectancy" };
+  | { t: "widget"; name: "candleLab" | "marketMap" | "chartTour" | "positionSizer" | "expectancy" }
+  /** Simple bar chart of labelled values (e.g. average return per month). */
+  | { t: "bars"; labels: string[]; values: number[]; unit?: string; caption?: string }
+  /** Heat-map of a square matrix (e.g. correlations from −1 to +1). */
+  | { t: "matrix"; names: string[]; m: number[][]; caption?: string };
 
 export type QuizQ = { q: string; options: string[]; answer: number; why: string };
 
@@ -60,6 +68,8 @@ export type Lesson = {
   minutes: number;
   blocks: Block[];
   quiz: QuizQ[];
+  /** Glossary / syllabus terms this lesson teaches (links the glossary to the lesson). */
+  terms?: string[];
 };
 
 export type Module = {

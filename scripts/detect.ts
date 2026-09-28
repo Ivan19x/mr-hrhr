@@ -70,6 +70,9 @@ export function ctx(ds: DS, w = 3): Ctx {
   };
 }
 
+/** Macro series (dollar index, yields, VIX) and the 15m index data are only used by the advanced examples. */
+export const isMacro = (id: string) => /^(dxy|us10y|vix)-|^(spx|ndx)-15m$/.test(id);
+
 export let CTX: Ctx[] = [];
 export let CTX4: Ctx[] = []; // wider swings for chart patterns
 /** Build indicator/swing contexts for every dataset (call once after loading data). */

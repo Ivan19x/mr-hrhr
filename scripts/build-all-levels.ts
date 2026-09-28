@@ -5,14 +5,14 @@
 // Output (compact): src/data/real/levels/<strategy>.json + src/data/real/levelIndex.json
 // The raw cache (scripts/.cache) can be deleted afterwards.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { CTX, D, loadContexts, type Cand, type Ctx, type DS } from "./detect.ts";
+import { CTX, D, isMacro, loadContexts, type Cand, type Ctx, type DS } from "./detect.ts";
 import { findSetups, setupToLevel, cleanliness, type Dataset } from "../src/engine/setups.ts";
 import type { AnswerMark, Level, MarkType, Question } from "../src/types/game.ts";
 
 const CACHE = new URL("./.cache/charts/", import.meta.url);
 const index: { id: string }[] = JSON.parse(await readFile(new URL("index.json", CACHE), "utf8"));
 const all: DS[] = [];
-for (const { id } of index) all.push(JSON.parse(await readFile(new URL(`${id}.json`, CACHE), "utf8")));
+for (const { id } of index) if (!isMacro(id)) all.push(JSON.parse(await readFile(new URL(`${id}.json`, CACHE), "utf8")));
 loadContexts(all);
 
 const TF: Record<string, string> = { "15m": "15-minute", "1h": "1-hour", "4h": "4-hour", "1D": "daily" };

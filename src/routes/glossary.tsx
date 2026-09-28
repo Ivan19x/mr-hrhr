@@ -4,7 +4,7 @@ import { ArrowLeft, Eye, Search, LineChart, Newspaper, Lightbulb } from "lucide-
 import { AppShell } from "@/components/AppShell";
 import { GLOSSARY } from "@/data/academy/glossary";
 import SYLLABUS from "@/data/academy/curriculumTerms.json";
-import { findLesson } from "@/data/academy";
+import { findLesson, lessonForTerm } from "@/data/academy";
 import { RANK_STEPS } from "@/data/curriculum";
 
 export const Route = createFileRoute("/glossary")({
@@ -25,13 +25,14 @@ const ENTRIES: Entry[] = (() => {
     const n = norm(t.term);
     const detailed = out.find((e) => norm(e.term) === n);
     if (detailed) {
+      detailed.lesson ??= lessonForTerm(t.term);
       detailed.stage ??= t.stage;
       detailed.stageName ??= t.stageName;
       continue;
     }
     if (seen.has(n)) continue;
     seen.add(n);
-    out.push({ term: t.term, def: t.def, tags: [], stage: t.stage, stageName: t.stageName, chart: t.chart });
+    out.push({ term: t.term, def: t.def, lesson: lessonForTerm(t.term), tags: [], stage: t.stage, stageName: t.stageName, chart: t.chart });
   }
   return out.sort((a, b) => a.term.localeCompare(b.term));
 })();

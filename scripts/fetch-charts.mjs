@@ -31,6 +31,8 @@ const DATASETS = [
   ].flatMap(([s, id, label]) => [Y(s, id, label, "1h", "730d"), Y(s, id, label, "1d", "10y")]),
   Y("EURUSD=X", "eurusd", "EUR/USD", "15m", "60d"),
   Y("GBPUSD=X", "gbpusd", "GBP/USD", "15m", "60d"),
+  Y("^GSPC", "spx", "S&P 500", "15m", "60d"),
+  Y("^NDX", "ndx", "NASDAQ 100", "15m", "60d"),
   ...[
     ["^GSPC", "spx", "S&P 500"],
     ["^NDX", "ndx", "NASDAQ 100"],
@@ -39,6 +41,9 @@ const DATASETS = [
     ["NVDA", "nvda", "NVIDIA (NVDA)"],
     ["TSLA", "tsla", "Tesla (TSLA)"],
     ["AMZN", "amzn", "Amazon (AMZN)"],
+    ["DX-Y.NYB", "dxy", "US Dollar Index (DXY)"],
+    ["^TNX", "us10y", "US 10-year yield"],
+    ["^VIX", "vix", "VIX (volatility index)"],
   ].map(([s, id, label]) => Y(s, id, label, "1d", "10y")),
 ];
 
@@ -58,8 +63,9 @@ async function binance(d) {
     rows = page.concat(rows);
     end = page[0][0] - 1;
   }
-  // [openTime, open, high, low, close, volume, ...]
-  return rows.map((r) => [Math.floor(r[0] / 1000), +r[1], +r[2], +r[3], +r[4], +r[5]]);
+  // [openTime, open, high, low, close, volume, closeTime, quoteVol, trades, takerBuyBase, ...]
+  // Kept: time, OHLC, volume, and taker (aggressive) buy volume for delta.
+  return rows.map((r) => [Math.floor(r[0] / 1000), +r[1], +r[2], +r[3], +r[4], +r[5], +r[9]]);
 }
 
 async function yahoo(d) {
@@ -90,4 +96,31 @@ for (const d of DATASETS) {
   }
 }
 await writeFile(new URL("index.json", OUT), JSON.stringify(index, null, 1));
+
+// Extras: BTC perpetual funding history (Binance) and euro futures positioning (CFTC COT).
+try {
+  let funding = [];
+  let end = Date.now();
+  for (let p = 0; p < 3; p++) {
+    const page = await getJson(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1000&endTime=${end}`);
+    if (!page.length) break;
+    funding = page.concat(funding);
+    end = page[0].fundingTime - 1;
+  }
+  const cotUrl = new URL("https://publicreporting.cftc.gov/resource/6dca-aqww.json");
+  cotUrl.searchParams.set("$where", "market_and_exchange_names='EURO FX - CHICAGO MERCANTILE EXCHANGE'");
+  cotUrl.searchParams.set("$order", "report_date_as_yyyy_mm_dd DESC");
+  cotUrl.searchParams.set("$limit", "260");
+  cotUrl.searchParams.set("$select", "report_date_as_yyyy_mm_dd,noncomm_positions_long_all,noncomm_positions_short_all,comm_positions_long_all,comm_positions_short_all");
+  const cot = await getJson(cotUrl.toString());
+  const depth = await getJson("https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=15");
+  await writeFile(new URL("extras.json", OUT), JSON.stringify({
+    funding: funding.map((f) => [Math.floor(f.fundingTime / 1000), +f.fundingRate, +f.markPrice]),
+    depth: { t: Math.floor(Date.now() / 1000), bids: depth.bids.map((r) => [+r[0], +r[1]]), asks: depth.asks.map((r) => [+r[0], +r[1]]) },
+    cot: cot.reverse().map((r) => [r.report_date_as_yyyy_mm_dd.slice(0, 10), +r.noncomm_positions_long_all, +r.noncomm_positions_short_all, +r.comm_positions_long_all, +r.comm_positions_short_all]),
+  }));
+  console.log(`✓ extras: ${funding.length} funding rates, ${cot.length} COT weeks`);
+} catch (e) {
+  console.log(`✗ extras: ${e.message}`);
+}
 console.log(`\n${index.length} datasets, ${index.reduce((s, x) => s + x.count, 0)} candles in scripts/.cache/charts/`);
