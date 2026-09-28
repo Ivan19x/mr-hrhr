@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BookOpen, CheckCircle2, ChevronRight, Library, Search } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Gamepad2, Library, Lock, Search } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useProfile } from "@/hooks/use-profile";
 import { MODULES, TOTAL_LESSONS, ALL_LESSONS, CORE_MODULES } from "@/data/academy";
 import type { Module } from "@/data/academy/types";
+import { gamesDone, lessonComplete, lessonGames, lessonUnlocked, nextOpenLesson, quizPassed } from "@/lib/lessonProgress";
+import type { Profile } from "@/types/game";
 
 export const Route = createFileRoute("/academy/")({
   head: () => ({ meta: [{ title: "Academy — MR_HRHR" }] }),
@@ -14,9 +16,9 @@ export const Route = createFileRoute("/academy/")({
 function AcademyPage() {
   const profile = useProfile();
   if (!profile) return <AppShell>{null}</AppShell>;
-  const done = (id: string) => !!profile.academy[id];
+  const done = (id: string) => lessonComplete(profile, id);
   const doneCount = ALL_LESSONS.filter((x) => done(x.lesson.id)).length;
-  const next = ALL_LESSONS.find((x) => !done(x.lesson.id));
+  const next = nextOpenLesson(profile);
 
   return (
     <AppShell>
@@ -25,7 +27,7 @@ function AcademyPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-electric">MR_HRHR Academy</p>
           <h1 className="text-3xl font-black">Learn to trade, from zero</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
-            From what a market is and how brokers connect to it, through candles, charts, patterns and indicators, to complete strategies and pro risk management.
+            From what a market is and how brokers connect to it, through candles, charts, patterns and indicators, to complete strategies and pro risk management. Every lesson ends with a game on real charts; finish it to open the next lesson.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -67,14 +69,14 @@ function AcademyPage() {
         <section key={part.title} className="mt-10">
           <h2 className="text-xl font-black">{part.title}</h2>
           <p className="text-sm text-muted-foreground">{part.text}</p>
-          <ModuleGrid modules={part.list} done={done} />
+          <ModuleGrid modules={part.list} done={done} profile={profile} />
         </section>
       ))}
     </AppShell>
   );
 }
 
-function ModuleGrid({ modules, done }: { modules: Module[]; done: (id: string) => boolean }) {
+function ModuleGrid({ modules, done, profile }: { modules: Module[]; done: (id: string) => boolean; profile: Profile }) {
   return (
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {modules.map((m, mi) => {
@@ -99,24 +101,35 @@ function ModuleGrid({ modules, done }: { modules: Module[]; done: (id: string) =
                 </span>
               </div>
               <ul className="mt-4 space-y-1">
-                {m.lessons.map((l, li) => (
+                {m.lessons.map((l, li) => {
+                  const open = lessonUnlocked(profile, l.id);
+                  const games = lessonGames(l.id).length;
+                  return (
                   <li key={l.id}>
                     <Link
                       to="/academy/$lessonId"
                       params={{ lessonId: l.id }}
-                      className="group flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-secondary"
+                      className={`group flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-secondary ${open ? "" : "opacity-50"}`}
                     >
                       {done(l.id) ? (
                         <CheckCircle2 className="h-4 w-4 shrink-0 text-up" />
+                      ) : !open ? (
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       ) : (
                         <span className="font-num flex h-4 w-4 shrink-0 items-center justify-center text-[10px] text-muted-foreground">{li + 1}</span>
                       )}
                       <span className="flex-1 truncate">{l.title}</span>
+                      {games > 0 && (
+                        <span className={`font-num flex items-center gap-1 text-[11px] ${quizPassed(profile, l.id) ? "text-electric" : "text-muted-foreground"}`} title="Lesson game: real charts played">
+                          <Gamepad2 className="h-3 w-3" /> {gamesDone(profile, l.id)}/{games}
+                        </span>
+                      )}
                       <span className="text-[11px] text-muted-foreground">{l.minutes} min</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                     </Link>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </motion.section>
           );

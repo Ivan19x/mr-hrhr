@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { PlaySession } from "@/components/PlaySession";
 import { getLevelById } from "@/services/levelService";
 import { levelUnlocked, levelsFor, lockReason, modeUnlocked } from "@/lib/progression";
+import { findLessonGame } from "@/data/levels";
+import { lessonGameUnlocked, lessonGames } from "@/lib/lessonProgress";
 import { rankedKey } from "@/services/rankedService";
 import { BLOWN_BALANCE, RECAP_XP_COST, dayKey, getProfile, recapitalise } from "@/services/progressService";
 import type { GameMode, Level, Profile } from "@/types/game";
@@ -46,8 +48,25 @@ function PlayPage() {
   if (!level || !profile)
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading level…</div>;
 
+  // Lesson games open after the lesson's quiz, one after another.
+  const game = findLessonGame(level.id);
+  if (game) {
+    const k = lessonGames(game.lessonId).findIndex((g) => g.id === level.id);
+    if (!lessonGameUnlocked(profile, game.lessonId, k))
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-4xl">🔒</p>
+          <p className="text-xl font-bold">This lesson game is locked</p>
+          <p className="max-w-sm text-sm text-muted-foreground">Read the lesson and pass its quiz first, then play its charts in order.</p>
+          <Link to="/academy/$lessonId" params={{ lessonId: game.lessonId }} className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+            Open the lesson
+          </Link>
+        </div>
+      );
+  }
+
   // Campaign levels must be unlocked in order (typing a URL doesn't skip the queue).
-  if (mode === "campaign") {
+  if (mode === "campaign" && !game) {
     const list = levelsFor(level.strategyId);
     const idx = list.findIndex((l) => l.id === level.id);
     if (idx >= 0 && !levelUnlocked(profile, list, idx)) {

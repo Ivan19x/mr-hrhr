@@ -12,9 +12,10 @@
     "format": "prettier --write .",
     "charts:fetch": "node scripts/fetch-charts.mjs",
     "charts:levels": "node scripts/build-candle-levels.ts && node scripts/build-all-levels.ts",
-    "charts:update": "npm run charts:fetch && npm run charts:examples && npm run charts:levels && npm run charts:glossary",
+    "charts:update": "npm run charts:fetch && npm run charts:examples && npm run charts:levels && npm run charts:lessons && npm run charts:glossary",
     "charts:examples": "node scripts/extract-examples.ts",
-    "charts:glossary": "node scripts/build-glossary.mjs"
+    "charts:glossary": "node scripts/build-glossary.mjs",
+    "charts:lessons": "node scripts/dump-lessons.mjs && node scripts/build-lesson-games.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

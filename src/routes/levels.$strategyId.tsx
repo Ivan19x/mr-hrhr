@@ -1,10 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, GraduationCap, Lock, Star, Timer } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Gamepad2, GraduationCap, Lock, Star, Timer } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useProfile } from "@/hooks/use-profile";
 import { levelLabel, levelUnlocked, levelsFor, lockReason, strategyById, strategyStars } from "@/lib/progression";
 import type { Level } from "@/types/game";
+import { ALL_LESSONS } from "@/data/academy";
+import { LESSON_STRATEGY } from "@/data/academy/lessonStrategy";
+import { gamesDone, lessonComplete, lessonGames, lessonUnlocked, quizPassed } from "@/lib/lessonProgress";
 
 export const Route = createFileRoute("/levels/$strategyId")({
   head: () => ({ meta: [{ title: "Levels — MR_HRHR" }] }),
@@ -67,6 +70,46 @@ function LevelSelect() {
       {locked && (
         <p className="mt-6 rounded-lg border border-gold/40 bg-gold/5 p-3 text-sm text-gold">🔒 Locked: {locked}.</p>
       )}
+      {(() => {
+        const lessons = ALL_LESSONS.filter((x) => LESSON_STRATEGY[x.lesson.id] === strategyId).map((x) => x.lesson);
+        if (lessons.length === 0) return null;
+        const finished = lessons.filter((l) => lessonComplete(profile, l.id)).length;
+        return (
+          <section className="mt-8">
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-electric">
+              <BookOpen className="h-4 w-4" /> Tutorial: the lessons
+              <span className="font-num text-[11px] font-medium normal-case text-muted-foreground">
+                {finished}/{lessons.length} complete
+              </span>
+            </h2>
+            <p className="mb-3 text-xs text-muted-foreground">Learn it, then prove it: each lesson ends with its own game on real charts.</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {lessons.map((l, k) => {
+                const open = lessonUnlocked(profile, l.id);
+                const done = lessonComplete(profile, l.id);
+                const games = lessonGames(l.id).length;
+                return (
+                  <Link
+                    key={l.id}
+                    to="/academy/$lessonId"
+                    params={{ lessonId: l.id }}
+                    className={`flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-sm hover:border-electric ${open ? "" : "opacity-50"}`}
+                  >
+                    {done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-up" /> : open ? <span className="font-num w-4 shrink-0 text-center text-xs text-electric">{k + 1}</span> : <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    <span className="flex-1 truncate font-medium">{l.title}</span>
+                    {games > 0 && (
+                      <span className={`font-num flex items-center gap-1 text-[11px] ${quizPassed(profile, l.id) ? "text-electric" : "text-muted-foreground"}`}>
+                        <Gamepad2 className="h-3 w-3" /> {gamesDone(profile, l.id)}/{games}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
       <div className="mt-8 space-y-8">
         {groups.map((g) => {
           const inGroup = levels.map((l, idx) => ({ l, idx })).filter(({ l }) => l.difficulty === g);

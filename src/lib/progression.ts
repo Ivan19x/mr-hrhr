@@ -23,9 +23,21 @@ export function levelsFor(strategyId: string): LevelMeta[] {
   return LEVELS_BY_STRATEGY[strategyId] ?? [];
 }
 
+/** A strategy is finished once its exam (the last level) is passed. */
 export function strategyComplete(p: Profile, strategyId: string): boolean {
   const levels = levelsFor(strategyId);
-  return levels.length > 0 && levels.every((l) => (p.results[l.id]?.stars ?? 0) >= 1);
+  const exam = levels[levels.length - 1];
+  return !!exam && (p.results[exam.id]?.stars ?? 0) >= 1;
+}
+
+// Tracks grew from 11 to 32 levels. The original 11 keep their ids and their old
+// order, so a level a player had already opened under the old order stays open.
+const ORIGINAL_ORDER = ["tutorial", "easy-1", "easy-2", "easy-3", "medium-1", "medium-2", "medium-3", "hard-1", "hard-2", "hard-3", "exam"];
+function originalPredecessor(levelId: string): string | null {
+  const m = /^(t\d-[a-z]+)-(.+)$/.exec(levelId);
+  if (!m) return null;
+  const k = ORIGINAL_ORDER.indexOf(m[2]!);
+  return k > 0 ? `${m[1]}-${ORIGINAL_ORDER[k - 1]}` : null;
 }
 
 export function tierUnlocked(p: Profile, tier: number): boolean {
@@ -74,7 +86,11 @@ export function levelUnlocked(p: Profile, levels: LevelMeta[], index: number): b
   if (!first || !strategyUnlocked(p, first.strategyId)) return false;
   if (index === 0) return true;
   const prev = levels[index - 1];
-  return !!prev && (p.results[prev.id]?.stars ?? 0) >= 1;
+  if (prev && (p.results[prev.id]?.stars ?? 0) >= 1) return true;
+  const me = levels[index]!;
+  if (p.results[me.id]) return true;
+  const old = originalPredecessor(me.id);
+  return !!old && (p.results[old]?.stars ?? 0) >= 1;
 }
 
 export function strategyStars(p: Profile, strategyId: string) {
@@ -86,7 +102,7 @@ export function strategyStars(p: Profile, strategyId: string) {
 /** Next level in the same strategy, or the first level of the next strategy once it is unlocked. */
 export function nextLevelId(levelId: string, p?: Profile): string | null {
   const lvl = findLevelMeta(levelId);
-  if (!lvl) return null;
+  if (!lvl || lvl.strategyId === "lesson") return null; // lesson games: see lib/lessonProgress
   const list = levelsFor(lvl.strategyId);
   const k = list.findIndex((l) => l.id === levelId);
   if (k >= 0 && k + 1 < list.length) return list[k + 1]!.id;

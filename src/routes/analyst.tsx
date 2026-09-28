@@ -102,7 +102,7 @@ function AnalystPage() {
                         <div className="flex items-center justify-between">
                           <p className="flex items-center gap-2 text-sm font-semibold">
                             <span className="font-num text-gold">#{k + 1}</span>
-                            {lvl ? `${strategyById(lvl.strategyId)?.name ?? ""} · ${levelLabel(lvl)}` : "Practice chart"}
+                            {lvl ? `${lvl.strategyId === "lesson" ? "Lesson game" : (strategyById(lvl.strategyId)?.name ?? "")} · ${levelLabel(lvl)}` : "Practice chart"}
                             <span className={`rounded px-1.5 text-[10px] font-bold uppercase ${t.side === "buy" ? "bg-up/15 text-up" : "bg-down/15 text-down"}`}>{t.side}</span>
                           </p>
                           <span className={`font-num text-sm font-bold ${t.r >= 0 ? "text-up" : "text-down"}`}>{fmtR(t.r)}</span>

@@ -33,7 +33,7 @@ import { simulateTrade, riskRewardRatio } from "@/engine/trade";
 import { matchMarks } from "@/engine/marking";
 import { SPEED_MS, type ReplaySpeed } from "@/engine/replay";
 import { TUTORIALS } from "@/data/tutorials";
-import { loadLevel } from "@/data/levels";
+import { LESSON_GAMES, findLessonGame, loadLevel } from "@/data/levels";
 import { LevelWalkthrough } from "@/components/LevelWalkthrough";
 import { Diagram } from "@/components/academy/Diagram";
 import { CandleFormation } from "@/components/CandleFormation";
@@ -111,6 +111,10 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const strategy = strategyById(baseLevel.strategyId);
+  // Lesson games: the game at the end of an Academy lesson.
+  const lessonGame = findLessonGame(baseLevel.id);
+  const lessonList = lessonGame ? (LESSON_GAMES[lessonGame.lessonId] ?? []) : [];
+  const lessonPos = lessonList.findIndex((g) => g.id === baseLevel.id);
   const practice = mode === "practice";
   const isTutorialLevel = baseLevel.difficulty === "tutorial";
 
@@ -555,9 +559,10 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
 
   const exitBack = () => {
     if (practice || mode === "daily" || mode === "ranked" || mode === "timed") navigate({ to: "/home" });
+    else if (lessonGame) navigate({ to: "/academy/$lessonId", params: { lessonId: lessonGame.lessonId } });
     else navigate({ to: "/levels/$strategyId", params: { strategyId: level.strategyId } });
   };
-  const nextId = mode === "campaign" ? nextLevelId(baseLevel.id, { ...profile, xp: reward?.xp ?? profile.xp, results: { ...profile.results, [baseLevel.id]: { levelId: baseLevel.id, stars: breakdown?.stars ?? 1, score: 0, r: 0, won: false, completedAt: 0 } } }) : null;
+  const nextId = lessonGame ? (mode === "campaign" ? (lessonList[lessonPos + 1]?.id ?? null) : null) : mode === "campaign" ? nextLevelId(baseLevel.id, { ...profile, xp: reward?.xp ?? profile.xp, results: { ...profile.results, [baseLevel.id]: { levelId: baseLevel.id, stars: breakdown?.stars ?? 1, score: 0, r: 0, won: false, completedAt: 0 } } }) : null;
 
   // --- Tutorial ---
   if (tutorialStep >= 0) {
@@ -625,7 +630,9 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
       ? "Daily Challenge"
       : mode === "ranked"
         ? "Ranked"
-        : `${strategy?.name ?? "Level"} · ${levelLabel(baseLevel)}`;
+        : lessonGame
+          ? `${lessonGame.lessonTitle} · Game ${lessonPos + 1}/${lessonList.length}`
+          : `${strategy?.name ?? "Level"} · ${levelLabel(baseLevel)}`;
   const phaseOrder: Phase[] = ["mark", "trade", "questions", "result"];
 
   return (

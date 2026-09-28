@@ -56,6 +56,7 @@ function dayStarts(x: Ctx, hm = 0): number[] {
 const fx15 = (x: Ctx) => x.ds.tf === "15m" && isYahoo(x) && /eurusd|gbpusd/.test(x.ds.id);
 const fx1h = (x: Ctx) => x.ds.tf === "1h" && isYahoo(x) && /eurusd|gbpusd|gold|audusd|usdjpy/.test(x.ds.id);
 const stock15 = (x: Ctx) => x.ds.tf === "15m" && isYahoo(x) && /spx|ndx/.test(x.ds.id);
+const stock1h = (x: Ctx) => x.ds.tf === "1h" && isYahoo(x) && /spx|ndx/.test(x.ds.id);
 
 function wider(x: Ctx, w: number): Ctx {
   const key = `__w${w}`;
@@ -835,14 +836,15 @@ D["turtle-soup"] = (x) => {
 /** A NY day where London fakes one way before New York runs the other way. */
 function judas(x: Ctx): Cand[] {
   const out: Cand[] = [];
-  if (!fx15(x)) return out;
+  const m15 = fx15(x);
+  if (!m15 && !fx1h(x)) return out;
   const T = ny(x);
   for (const s of dayStarts(x, 0)) {
     if (T[s]!.wd === 0 || T[s]!.wd === 6) continue;
-    const pre = atTime(x, s, 0) - 20; // show a little of the Asian session
+    const pre = atTime(x, s, 0) - (m15 ? 20 : 6); // show a little of the Asian session
     const e = atTime(x, s, HM(16));
     const lon = atTime(x, s, HM(5));
-    if (pre < 0 || e < 0 || lon < 0 || e - s < 55) continue;
+    if (pre < 0 || e < 0 || lon < 0 || e - s < (m15 ? 55 : 13)) continue;
     const open = x.o[s]!;
     const atr = x.atr[s]!;
     const lowK = range(lon - s + 1, s).reduce((m, k) => (x.l[k]! < x.l[m]! ? k : m), s);
@@ -906,7 +908,7 @@ D["fvg-ce"] = (x) => {
 };
 D["first-fvg"] = (x) => {
   const out: Cand[] = [];
-  if (!fx15(x)) return out;
+  if (!fx15(x) && !stock15(x)) return out;
   const T = ny(x);
   for (const s of dayStarts(x, HM(9, 30))) {
     if (T[s]!.wd === 0 || T[s]!.wd === 6) continue;
@@ -1176,7 +1178,7 @@ D["killzones"] = (x) => {
 };
 D["silver-bullet"] = (x) => {
   const out: Cand[] = [];
-  if (!fx15(x)) return out;
+  if (!fx15(x) && !stock15(x)) return out;
   const T = ny(x);
   for (const s of dayStarts(x, HM(10))) {
     if (T[s]!.wd === 0 || T[s]!.wd === 6) continue;
@@ -1198,19 +1200,22 @@ D["silver-bullet"] = (x) => {
 };
 D["orb"] = (x) => {
   const out: Cand[] = [];
-  if (!stock15(x)) return out;
+  const h1 = stock1h(x);
+  if (!stock15(x) && !h1) return out;
   const T = ny(x);
   for (const s of dayStarts(x, HM(9, 30))) {
     if (T[s]!.hm !== HM(9, 30)) continue;
-    const e = atTime(x, s, HM(15, 45));
-    if (e < 0 || e - s < 20) continue;
-    const hi = x.hiOf(s, s + 1), lo = x.loOf(s, s + 1); // first 30 minutes
-    const br = range(10, s + 2).find((k) => x.c[k]! > hi || x.c[k]! < lo);
+    const e = atTime(x, s, HM(15, h1 ? 30 : 45));
+    if (e < 0 || e - s < (h1 ? 5 : 20)) continue;
+    const orEnd = h1 ? s : s + 1; // first 30 minutes (15m) or the first hour (1h)
+    const hi = x.hiOf(s, orEnd), lo = x.loOf(s, orEnd);
+    const br = range(h1 ? 4 : 10, orEnd + 1).find((k) => x.c[k]! > hi || x.c[k]! < lo);
     if (br === undefined) continue;
     const up = x.c[br]! > hi;
     const run = up ? (x.hiOf(br, e) - hi) / (hi - lo) : (lo - x.loOf(br, e)) / (hi - lo);
     if (run < 1.5) continue;
-    out.push({ ds: x.ds, start: s, end: e, pts: { or1: 1, br: br - s, lunch: atTime(x, s, HM(12)) - s, pm: atTime(x, s, HM(15)) - s }, lv: { hi, lo, dir: up ? 1 : -1 }, score: run });
+    const pre = h1 ? Math.max(0, s - 14) : s; // hourly: show the previous afternoon too
+    out.push({ ds: x.ds, start: pre, end: e, pts: { or0: s - pre, or1: orEnd - pre, br: br - pre, lunch: atTime(x, s, HM(12)) - pre, pm: atTime(x, s, HM(15)) - pre }, lv: { hi, lo, dir: up ? 1 : -1 }, score: run });
   }
   return out;
 };
@@ -1361,12 +1366,12 @@ function wyckoff(dir: 1 | -1): Detector {
       const atr = x.atr[sc]!;
       // Trend into the climax, on heavy volume.
       if (dir * (x.c[sc - 40]! - P[sc]!) < 8 * atr) continue;
-      if (Math.max(x.v[sc]!, x.v[sc - 1]!, x.v[sc + 1]!) < 1.8 * avgVol(x, sc - 1)) continue;
+      if (Math.max(x.v[sc]!, x.v[sc - 1]!, x.v[sc + 1]!) < 1.5 * avgVol(x, sc - 1)) continue;
       // Automatic rally / reaction: the far side of the range.
       const arK = range(18, sc + 3).reduce((m, k) => (k < x.n && dir * (Q[k]! - Q[m]!) > 0 ? k : m), sc + 2);
       const ar = Q[arK]!;
       const height = dir * (ar - P[sc]!);
-      if (height < 3 * atr) continue;
+      if (height < 2.5 * atr) continue;
       // Spring / UTAD: a false break of the climax extreme that closes back inside.
       const sp = range(80, arK + 8).find((k) => k < x.n - 20 && dir * (P[sc]! - P[k]!) > 0 && dir * (P[sc]! - P[k]!) < 0.5 * height && dir * (x.c[k]! - P[sc]!) > 0);
       if (sp === undefined) continue;
@@ -1380,11 +1385,11 @@ function wyckoff(dir: 1 | -1): Detector {
       const lps = range(15, sos + 1).reduce((m, k) => (k < x.n && dir * (P[k]! - P[m]!) < 0 ? k : m), sos + 1);
       if (dir * (P[lps]! - (P[sc]! + ar) / 2) < 0) continue;
       // Phase E: the trend must actually leave the range (markup / markdown) past the SOS extreme.
-      const mk = findAhead(x, lps + 1, 20, (k) => dir * (Q[k]! - Q[sos]!) > 0);
+      const mk = findAhead(x, lps + 1, 30, (k) => dir * (Q[k]! - Q[sos]!) > 0);
       if (mk === undefined || range(mk - lps, lps + 1).some((k) => dir * (x.c[k]! - P[lps]!) < 0)) continue;
       const end = Math.min(x.n - 1, mk + 4);
       const start = Math.max(0, sc - 25);
-      if (end - start > 170) continue;
+      if (end - start > 230) continue;
       out.push({ ds: x.ds, start, end, pts: { sc: sc - start, ar: arK - start, st: st - start, sp: sp - start, sos: sos - start, lps: lps - start }, lv: { top: dir === 1 ? ar : P[sc]!, bot: dir === 1 ? P[sc]! : ar }, score: height / atr / 2 + (x.v[sc]! / avgVol(x, sc - 1)) / 2 + 3 - (end - start) / 60 });
     }
     return out;
@@ -1479,6 +1484,49 @@ D["crt"] = (x) => {
     if (hit === undefined || x.loOf(i + 1, hit) < x.l[i]!) continue;
     out.push({ ds: x.ds, start: i - 14, end: i + 7, pts: { c1: 13, c2: 14, hit: hit - (i - 14) }, lv: { hi: x.h[c1]!, lo: x.l[c1]! }, score: x.range(c1) / atr + (x.l[c1]! - x.l[i]!) / atr + (hit === i + 1 ? 1 : 0) });
     i += 5;
+  }
+  return out;
+};
+
+D["london-breakout-1h"] = (x) => {
+  const out: Cand[] = [];
+  if (!fx1h(x) || !/eurusd|gbpusd|audusd|usdjpy/.test(x.ds.id)) return out;
+  const hourOf = (i: number) => new Date(x.t[i]! * 1000).getUTCHours();
+  for (let i = 1; i < x.n - 20; i++) {
+    if (!(hourOf(i) === 0 && hourOf(i - 1) !== 0)) continue;
+    const asia: number[] = [];
+    let k = i;
+    while (k < x.n && hourOf(k) < 7) asia.push(k++);
+    if (asia.length < 6) continue;
+    const hi = x.hiOf(asia[0]!, asia[asia.length - 1]!);
+    const lo = x.loOf(asia[0]!, asia[asia.length - 1]!);
+    const atr = x.atr[k]!;
+    const width = (hi - lo) / atr;
+    if (width < 1.5 || width > 5) continue;
+    const br = range(4, k).find((j) => x.c[j]! > hi || x.c[j]! < lo);
+    if (br === undefined || br + 10 >= x.n) continue;
+    const up = x.c[br]! > hi;
+    const start = Math.max(0, asia[0]! - 6);
+    out.push({ ds: x.ds, start, end: br + 10, pts: { a0: asia[0]! - start, a1: asia[asia.length - 1]! - start, open: k - start, br: br - start }, lv: { hi, lo, dir: up ? 1 : -1 }, score: 3 - Math.abs(width - 3) / 2 });
+  }
+  return out;
+};
+
+/** OTE for games: a 62–79% pullback of a displacement leg, no look-ahead (the real outcome decides). */
+D["ote-game"] = (x) => {
+  const out: Cand[] = [];
+  for (const A of x.swL) {
+    const B = x.swH.find((b) => b > A && b - A <= 25);
+    if (B === undefined) continue;
+    const atr = x.atr[B]!;
+    const leg = x.h[B]! - x.l[A]!;
+    if (leg < 5 * atr || x.loOf(A, B) < x.l[A]! || x.hiOf(A, B) > x.h[B]!) continue;
+    const C = x.swL.find((cc) => cc > B && cc - B <= 20);
+    if (C === undefined || x.hiOf(B + 1, C) > x.h[B]!) continue;
+    const retr = (x.h[B]! - x.l[C]!) / leg;
+    if (retr < 0.62 || retr > 0.79 || C + 30 >= x.n) continue;
+    const start = Math.max(0, A - 5);
+    out.push({ ds: x.ds, start, end: C + 8, pts: { A: A - start, B: B - start, C: C - start }, lv: { retr }, score: 3 - Math.abs(retr - 0.705) * 20 + Math.min(leg / atr, 12) / 4 });
   }
   return out;
 };

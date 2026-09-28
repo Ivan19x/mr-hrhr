@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, Gamepad2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, Gamepad2, Lock, Star } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { LessonBlocks } from "@/components/academy/LessonBlocks";
 import { useProfile } from "@/hooks/use-profile";
 import { findLesson } from "@/data/academy";
-import { strategyById } from "@/lib/progression";
+import { levelLabel, strategyById } from "@/lib/progression";
+import { LESSON_STRATEGY } from "@/data/academy/lessonStrategy";
+import { gamesDone, lessonComplete, lessonGameUnlocked, lessonGames, lessonLockReason, lessonUnlocked, quizPassed } from "@/lib/lessonProgress";
+import type { Profile } from "@/types/game";
 import { getQuizAttempts, quizXp, recordLessonQuiz, registerQuizAttempt, LESSON_PASS } from "@/services/academyService";
 import { getProfile } from "@/services/progressService";
 import { mulberry32 } from "@/engine/transform";
@@ -28,9 +31,8 @@ export const Route = createFileRoute("/academy/$lessonId")({
   component: LessonPage,
 });
 
-// Lessons that have a playable chart game to practise on.
-// Lessons with scored real-chart levels to practise on (lesson id → strategy).
-const PLAYABLE: Record<string, string> = { "candle-ohlc": "candles", "buyers-sellers": "candles", "wicks": "candles", "body-momentum": "candles", "marubozu": "candles", "doji": "candles", "hammer-hanging-man": "candles", "inverted-hammer-shooting-star": "candles", "spinning-top": "candles", "pin-bar": "candles", "engulfing": "candles", "harami": "candles", "tweezers": "candles", "piercing-dark-cloud": "candles", "inside-outside-bar": "candles", "three-candle": "candles", "trends": "trends", "trendlines-channels": "trends", "strat-trend-pullback": "sltp", "support-resistance": "sr", "ranges": "sr", "strat-range": "rr", "strat-breakout-retest": "sr", "order-types": "sltp", "trade-management": "sltp", "risk-per-trade": "rr", "rr-expectancy": "rr", "bos-choch": "bos", "strat-bos": "bos", "strat-choch-reversal": "choch", "breakout-fakeout": "liquidity", "liquidity": "liquidity", "order-blocks": "orderblocks", "fair-value-gaps": "fvg", "premium-discount": "premiumdiscount", "fibonacci": "premiumdiscount", "confluence": "confluence", "strat-smc-ob-fvg": "confluence", "timeframes": "mtf", "strat-top-down": "mtf", "sessions": "sessions", "strat-london-breakout": "sessions", "compression-expansion": "trends", "dow-theory-staircase": "trends", "market-structure-shift": "choch", "internal-external-structure": "swings", "strong-weak-protected": "swings", "inducement": "liquidity", "swing-failure-pattern": "liquidity", "sell-side-clean-old": "liquidity", "draw-on-liquidity": "liquidity", "turtle-soup": "liquidity", "previous-highs-lows": "liquidity", "consequent-encroachment": "fvg", "inversion-fvg": "fvg", "balanced-price-range": "fvg", "unmitigated-refined-ob": "orderblocks", "breaker-mitigation-blocks": "orderblocks", "poi-pd-arrays": "premiumdiscount", "optimal-trade-entry": "premiumdiscount", "killzones": "sessions", "silver-bullet-macros": "sessions", "opens-opening-range": "sessions", "power-of-three": "sessions", "risk-vs-confirmation-entry": "confluence", "ict-2022-model": "confluence", "unicorn-model": "confluence", "performance-metrics": "rr" };
+// Lesson → the strategy track it belongs to (its scored levels on the Map).
+const PLAYABLE = LESSON_STRATEGY;
 
 function LessonPage() {
   const { lessonId } = Route.useParams();
@@ -52,6 +54,23 @@ function LessonPage() {
     );
   const { lesson, module, index, prev, next } = found;
   const best = profile?.academy[lesson.id]?.best;
+
+  if (profile && !lessonUnlocked(profile, lesson.id))
+    return (
+      <AppShell>
+        <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
+          <Lock className="h-10 w-10 text-muted-foreground" />
+          <p className="text-xl font-bold">{lesson.title} is locked</p>
+          <p className="text-sm text-muted-foreground">{lessonLockReason(profile, lesson.id)}.</p>
+          {prev && (
+            <Link to="/academy/$lessonId" params={{ lessonId: prev.id }} className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+              Go to {prev.title}
+            </Link>
+          )}
+        </div>
+      </AppShell>
+    );
+  const complete = profile ? lessonComplete(profile, lesson.id) : false;
 
   return (
     <AppShell>
@@ -79,6 +98,12 @@ function LessonPage() {
           <LessonBlocks blocks={lesson.blocks} />
         </div>
 
+
+
+        <Quiz key={lesson.id} lessonId={lesson.id} questions={lesson.quiz} />
+
+        {profile && <LessonGame lessonId={lesson.id} profile={profile} />}
+
         {PLAYABLE[lesson.id] && (
           <Link
             to="/levels/$strategyId"
@@ -87,14 +112,12 @@ function LessonPage() {
           >
             <Gamepad2 className="h-6 w-6 text-electric" />
             <div>
-              <p className="font-semibold">Practise this on real charts</p>
-              <p className="text-sm text-muted-foreground">Play the scored {strategyById(PLAYABLE[lesson.id]!)?.name} levels, all cut from real market charts.</p>
+              <p className="font-semibold">Keep going on the Map</p>
+              <p className="text-sm text-muted-foreground">This lesson is part of the {strategyById(PLAYABLE[lesson.id]!)?.name} tutorial. Its full level track is on the Map.</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-electric" />
           </Link>
         )}
-
-        <Quiz key={lesson.id} lessonId={lesson.id} questions={lesson.quiz} />
 
         <nav className="mt-10 flex justify-between gap-3 border-t border-border pt-6">
           {prev ? (
@@ -104,11 +127,16 @@ function LessonPage() {
           ) : (
             <span />
           )}
-          {next && (
-            <Link to="/academy/$lessonId" params={{ lessonId: next.id }} className="flex max-w-[45%] items-center gap-2 text-right text-sm font-semibold text-electric">
-              <span className="truncate">{next.title}</span> <ArrowRight className="h-4 w-4 shrink-0" />
-            </Link>
-          )}
+          {next &&
+            (complete || (profile && lessonUnlocked(profile, next.id)) ? (
+              <Link to="/academy/$lessonId" params={{ lessonId: next.id }} className="flex max-w-[45%] items-center gap-2 text-right text-sm font-semibold text-electric">
+                <span className="truncate">{next.title}</span> <ArrowRight className="h-4 w-4 shrink-0" />
+              </Link>
+            ) : (
+              <span className="flex max-w-[55%] items-center gap-2 text-right text-xs text-muted-foreground">
+                <Lock className="h-3.5 w-3.5 shrink-0" /> Pass the quiz and play the game to open the next lesson
+              </span>
+            ))}
         </nav>
       </article>
     </AppShell>
@@ -243,7 +271,15 @@ function Quiz({ lessonId, questions: source }: { lessonId: string; questions: Qu
               >
                 <RotateCcw className="h-4 w-4" /> Retry quiz
               </button>
-              {found?.next && result.score >= LESSON_PASS && (
+              {result.score >= LESSON_PASS && lessonGames(lessonId).length > 0 && (
+                <button
+                  onClick={() => document.getElementById("lesson-game")?.scrollIntoView({ behavior: "smooth" })}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  <Gamepad2 className="h-4 w-4" /> Play the lesson game
+                </button>
+              )}
+              {found?.next && result.score >= LESSON_PASS && lessonGames(lessonId).length === 0 && (
                 <button
                   onClick={() => navigate({ to: "/academy/$lessonId", params: { lessonId: found.next!.id } })}
                   className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
@@ -279,6 +315,64 @@ function Quiz({ lessonId, questions: source }: { lessonId: string; questions: Qu
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </section>
+  );
+}
+
+/** The game at the end of the lesson: real-chart levels on this lesson's concept. */
+function LessonGame({ lessonId, profile }: { lessonId: string; profile: Profile }) {
+  const navigate = useNavigate();
+  const games = lessonGames(lessonId);
+  if (games.length === 0) return null;
+  const passed = quizPassed(profile, lessonId);
+  const done = gamesDone(profile, lessonId);
+  const found = findLesson(lessonId);
+  return (
+    <section id="lesson-game" className="panel mt-6 scroll-mt-20 p-5 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-xl font-bold">
+          <Gamepad2 className="h-5 w-5 text-electric" /> Lesson game
+        </h2>
+        <span className="font-num text-sm text-muted-foreground">
+          {done}/{games.length} charts
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {games.length} real market charts on this lesson's concept. Mark it, trade it, answer the questions, then see what really happened.
+        {!passed && " Pass the quiz above to start."}
+      </p>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {games.map((g, k) => {
+          const open = lessonGameUnlocked(profile, lessonId, k);
+          const res = profile.results[g.id];
+          return (
+            <button
+              key={g.id}
+              disabled={!open}
+              onClick={() => navigate({ to: "/play/$levelId", params: { levelId: g.id }, search: { mode: "campaign" } })}
+              className={`flex flex-col items-center rounded-xl border p-4 transition-all ${
+                open ? "border-border bg-secondary hover:-translate-y-0.5 hover:border-electric" : "cursor-not-allowed border-border opacity-45"
+              } ${open && !res ? "border-electric/60 shadow-[0_0_20px_-10px_var(--color-electric)]" : ""}`}
+            >
+              {open ? <span className="font-num text-2xl font-black">{k + 1}</span> : <Lock className="h-6 w-6 text-muted-foreground" />}
+              <span className="mt-1 text-xs text-muted-foreground">{levelLabel(g).split(" ")[0]}</span>
+              <div className="mt-2 flex gap-0.5">
+                {[1, 2, 3].map((s) => (
+                  <Star key={s} className={`h-3.5 w-3.5 ${res && s <= res.stars ? "fill-gold text-gold" : "text-muted"}`} />
+                ))}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {passed && done === games.length && found?.next && (
+        <button
+          onClick={() => navigate({ to: "/academy/$lessonId", params: { lessonId: found.next!.id } })}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground"
+        >
+          Lesson complete · Next: {found.next.title} <ArrowRight className="h-4 w-4" />
+        </button>
+      )}
     </section>
   );
 }

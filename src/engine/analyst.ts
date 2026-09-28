@@ -2,6 +2,7 @@
 // It finds the best trades, where the player's edge is (and isn't), and turns
 // that into concrete strategy and lesson recommendations.
 import type { GameMode, Level } from "@/types/game";
+import { STRATEGIES } from "@/data/curriculum";
 
 export type TradeRecord = {
   id: string;
@@ -58,7 +59,7 @@ export type AnalystReport = {
 
 export const MIN_TRADES = 5;
 
-const STRATEGY_NAMES: Record<string, string> = { bos: "Break of Structure" };
+const STRATEGY_NAMES: Record<string, string> = { ...Object.fromEntries(STRATEGIES.map((s) => [s.id, s.name])), lesson: "Lesson games" };
 const STRATEGY_LESSON: Record<string, string> = { bos: "strat-bos" };
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
@@ -296,7 +297,7 @@ export function analyze(all: TradeRecord[]): AnalystReport {
 
   // Best strategy by results.
   const byStrat = segments.find((s) => s.title === "By strategy")?.rows ?? [];
-  const topStrat = byStrat.find((s) => s.n >= 3 && s.avgR > 0);
+  const topStrat = byStrat.find((s) => s.n >= 3 && s.avgR > 0 && s.key !== "lesson");
   if (topStrat) {
     recs.unshift({
       title: `Keep building on ${topStrat.label}`,

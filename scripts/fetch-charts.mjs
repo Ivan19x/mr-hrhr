@@ -11,17 +11,20 @@ const B = (symbol, label, interval, pages = 3) => ({ id: `${symbol.toLowerCase()
 const Y = (symbol, id, label, interval, range) => ({ id: `${id}-${interval}`, label, tf: interval === "1d" ? "1D" : interval, src: "yahoo", symbol, interval, range });
 
 const DATASETS = [
-  ...["1h", "4h", "1d"].flatMap((iv) => [
-    B("BTCUSDT", "BTC/USDT", iv),
-    B("ETHUSDT", "ETH/USDT", iv),
-    B("SOLUSDT", "SOL/USDT", iv),
-    B("BNBUSDT", "BNB/USDT", iv),
-    B("XRPUSDT", "XRP/USDT", iv),
-    B("ADAUSDT", "ADA/USDT", iv),
-    B("DOGEUSDT", "DOGE/USDT", iv),
-  ]),
-  B("BTCUSDT", "BTC/USDT", "15m"),
-  B("ETHUSDT", "ETH/USDT", "15m"),
+  ...["1h", "4h", "1d"].flatMap((iv) => {
+    const pages = iv === "1d" ? 3 : 8; // intraday: 8000 candles of history
+    return [
+      B("BTCUSDT", "BTC/USDT", iv, pages),
+      B("ETHUSDT", "ETH/USDT", iv, pages),
+      B("SOLUSDT", "SOL/USDT", iv, pages),
+      B("BNBUSDT", "BNB/USDT", iv, pages),
+      B("XRPUSDT", "XRP/USDT", iv, pages),
+      B("ADAUSDT", "ADA/USDT", iv, pages),
+      B("DOGEUSDT", "DOGE/USDT", iv, pages),
+    ];
+  }),
+  B("BTCUSDT", "BTC/USDT", "15m", 8),
+  B("ETHUSDT", "ETH/USDT", "15m", 8),
   ...[
     ["EURUSD=X", "eurusd", "EUR/USD"],
     ["GBPUSD=X", "gbpusd", "GBP/USD"],
@@ -33,6 +36,8 @@ const DATASETS = [
   Y("GBPUSD=X", "gbpusd", "GBP/USD", "15m", "60d"),
   Y("^GSPC", "spx", "S&P 500", "15m", "60d"),
   Y("^NDX", "ndx", "NASDAQ 100", "15m", "60d"),
+  Y("^GSPC", "spx", "S&P 500", "1h", "730d"),
+  Y("^NDX", "ndx", "NASDAQ 100", "1h", "730d"),
   ...[
     ["^GSPC", "spx", "S&P 500"],
     ["^NDX", "ndx", "NASDAQ 100"],

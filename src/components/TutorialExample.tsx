@@ -10,11 +10,22 @@ const H = 260;
 const PAD = 16;
 
 export function TutorialExample({ level, step }: { level: Level; step: TutorialStep }) {
-  // Key points come from the level's answer key.
-  const swing = level.answerKey.find((a) => a.id === "k-swing")!;
-  const pull = level.answerKey.find((a) => a.id === "k-pull")!;
-  const bos = level.answerKey.find((a) => a.id === "k-bos")!;
-  const breakIdx = bos.i2 ?? level.decisionIndex;
+  // Key points come from the level's answer key (by id, or by mark type on newer levels).
+  const bull = level.correctDirection === "buy";
+  const swing =
+    level.answerKey.find((a) => a.id === "k-swing") ??
+    level.answerKey.find((a) => a.type === "SWING_HIGH" || a.type === "SWING_LOW") ?? { i1: 0, p1: level.candles[0]!.c };
+  const bos = level.answerKey.find((a) => a.id === "k-bos") ?? level.answerKey.find((a) => a.type === "BOS");
+  const breakIdx = bos?.i2 ?? level.decisionIndex;
+  // The pullback: the extreme between the swing and the break (lowest low for a buy).
+  const pull = level.answerKey.find((a) => a.id === "k-pull") ?? (() => {
+    let i1 = Math.min(swing.i1 + 1, breakIdx);
+    for (let i = swing.i1 + 1; i < breakIdx; i++) {
+      const c = level.candles[i]!;
+      if (bull ? c.l < level.candles[i1]!.l : c.h > level.candles[i1]!.h) i1 = i;
+    }
+    return { i1, p1: bull ? level.candles[i1]!.l : level.candles[i1]!.h };
+  })();
 
   const target =
     step.revealTo === "swing"

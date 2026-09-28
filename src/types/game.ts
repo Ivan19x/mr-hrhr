@@ -34,6 +34,8 @@ export type Level = {
   id: string; // "t2-bos-easy-1"
   tier: 1 | 2 | 3 | 4;
   strategyId: string; // "bos"
+  /** Lesson games only: the Academy lesson this level belongs to (strategyId is "lesson"). */
+  lessonId?: string | undefined;
   difficulty: Difficulty;
   candles: Candle[]; // full series, including the outcome
   decisionIndex: number; // replay pauses after this candle

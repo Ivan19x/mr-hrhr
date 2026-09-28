@@ -16,6 +16,7 @@ import { getDailyChallenge } from "@/services/dailyChallengeService";
 import { seasonInfo } from "@/services/rankedService";
 import { rankForXp, RANK_STEPS } from "@/data/curriculum";
 import { continueLevel, levelLabel, modeUnlocked, strategyById, timedPool, MODE_UNLOCK_RANK } from "@/lib/progression";
+import { lessonComplete, nextOpenLesson } from "@/lib/lessonProgress";
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Home — MR_HRHR" }] }),
@@ -65,8 +66,8 @@ function HomePage() {
   const strat = strategyById(next.strategyId);
   const nextRankXp = rank.nextXp;
   const timedOk = modeUnlocked(profile, "timed");
-  const nextLesson = ALL_LESSONS.find((x) => !profile.academy[x.lesson.id]);
-  const lessonsDone = ALL_LESSONS.filter((x) => profile.academy[x.lesson.id]).length;
+  const nextLesson = nextOpenLesson(profile);
+  const lessonsDone = ALL_LESSONS.filter((x) => lessonComplete(profile, x.lesson.id)).length;
   const rankedOk = modeUnlocked(profile, "ranked");
 
   const startTimed = () => {

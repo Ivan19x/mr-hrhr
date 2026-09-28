@@ -1,4 +1,5 @@
-// Builds Tier 1 · Candlesticks: 11 playable levels cut from REAL charts.
+// Builds Tier 1 · Candlesticks: 32 playable levels cut from REAL charts
+// (tutorial + 10 easy + 10 medium + 10 hard + exam).
 //   node scripts/build-candle-levels.ts        (after scripts/fetch-charts.mjs)
 // Each level: the replay stops on the candle that completes a real pattern.
 // The player marks it, trades it (stop beyond the pattern, 2R target), answers
@@ -7,6 +8,7 @@
 // Run scripts/build-all-levels.ts afterwards to refresh the level index.
 import { readFile, writeFile } from "node:fs/promises";
 import { CTX, D, isMacro, loadContexts, type Cand, type DS } from "./detect.ts";
+import "./detect-advanced.ts";
 import type { AnswerMark, Candle, Level, Question } from "../src/types/game.ts";
 
 const CACHE = new URL("./.cache/charts/", import.meta.url);
@@ -92,9 +94,75 @@ const P: Record<string, Pattern> = {
     lie: "A piercing line closes below the red candle's low.",
     story: "After a red candle, the next candle opened low but **closed above the middle of the red body**. Buyers fought back hard. That's a **piercing line**.",
   },
+  "dark-cloud": {
+    id: "dark-cloud", name: "Dark cloud cover", dir: "sell", len: 2,
+    truth: "The red candle closed below the midpoint of the green candle's body.",
+    lie: "A dark cloud cover closes above the green candle's high.",
+    story: "After a green candle, the next candle opened high but **closed below the middle of the green body**. Sellers took back more than half the rally. That's a **dark cloud cover**.",
+  },
+  "harami-bull": {
+    id: "harami-bull", name: "Bullish harami", dir: "buy", len: 2,
+    truth: "The small green body sits inside the previous big red body.",
+    lie: "A bullish harami's second candle is bigger than the first.",
+    story: "A big red candle was followed by a **small green body inside it**. The selling suddenly stalled. That's a **bullish harami**; the next candles confirmed it.",
+  },
+  "tweezer-bottom": {
+    id: "tweezer-bottom", name: "Tweezer bottom", dir: "buy", len: 2,
+    truth: "Two candles held at exactly the same low.",
+    lie: "A tweezer bottom has two matching highs.",
+    story: "Two candles in a row hit the **same low** and held. Sellers failed twice at one price. That's a **tweezer bottom**.",
+  },
+  "three-soldiers": {
+    id: "three-soldiers", name: "Three white soldiers", dir: "buy", len: 3,
+    truth: "Three strong green candles each closed higher than the last, with small upper wicks.",
+    lie: "Three white soldiers are three small dojis.",
+    story: "**Three strong green candles in a row**, each closing higher with little upper wick. Buyers were in control for three periods straight: **three white soldiers**.",
+  },
+  "three-crows": {
+    id: "three-crows", name: "Three black crows", dir: "sell", len: 3,
+    truth: "Three strong red candles each closed lower than the last.",
+    lie: "Three black crows is a bullish signal.",
+    story: "**Three strong red candles in a row**, each closing lower. Sellers were in control for three periods straight: **three black crows**.",
+  },
+  "hanging-man": {
+    id: "hanging-man", name: "Hanging man", dir: "sell", len: 1,
+    truth: "A hanging man looks like a hammer but appears after a rally.",
+    lie: "A hanging man appears at the bottom of a downtrend.",
+    story: "After a rally, a candle with a **small body and a long lower wick** printed at the high. Same shape as a hammer, opposite place: a **hanging man**, warning that sellers are testing the move.",
+  },
+  "inverted-hammer": {
+    id: "inverted-hammer", name: "Inverted hammer", dir: "buy", len: 1,
+    truth: "An inverted hammer has a long upper wick and appears after a decline.",
+    lie: "An inverted hammer appears at the top of a rally.",
+    story: "After a decline, a candle with a **small body and a long upper wick** printed at the low. Buyers tried to push up for the first time: an **inverted hammer**, confirmed by the next candles.",
+  },
+  "doji-dragonfly": {
+    id: "doji-dragonfly", name: "Dragonfly doji", dir: "buy", len: 1,
+    truth: "Open and close are at the high: sellers pushed down but buyers took it all back.",
+    lie: "A dragonfly doji has a long upper wick.",
+    story: "After a fall, sellers drove price far lower, but it **closed right back at the open, at the high**. That's a **dragonfly doji**: complete rejection of lower prices.",
+  },
+  "outside-bar": {
+    id: "outside-bar", name: "Outside bar", dir: "buy", len: 2,
+    truth: "The candle's range covers the whole previous candle: a higher high and a lower low.",
+    lie: "An outside bar fits inside the previous candle.",
+    story: "At a low, one candle took out the previous candle's low AND high, then **closed near its top**. That's a bullish **outside bar**: both sides' stops were run and buyers won.",
+  },
+  "three-inside-up": {
+    id: "three-inside-up", name: "Three inside up", dir: "buy", len: 3,
+    truth: "Candle 3 closed above the open of the big first candle.",
+    lie: "Three inside up needs three green candles.",
+    story: "A big red candle, a **small candle inside it** (a harami), then a third candle **closing above the first candle's open**. That's **three inside up**: a confirmed harami.",
+  },
+  "belt-hold-bull": {
+    id: "belt-hold-bull", name: "Bullish belt hold", dir: "buy", len: 1,
+    truth: "It opens at its low and never trades below the open.",
+    lie: "A bullish belt hold opens at its high.",
+    story: "After a decline, a candle **opened at its low** and closed near its high with a big body. Buyers held the line from the first tick: a **bullish belt hold**.",
+  },
 };
 
-const DISTRACTORS = ["Bullish engulfing", "Bearish engulfing", "Hammer", "Shooting star", "Morning star", "Evening star", "Gravestone doji", "Bullish pin bar", "Bearish harami", "Tweezer top", "Piercing line", "Doji", "Spinning top", "Marubozu"];
+const DISTRACTORS = ["Bullish engulfing", "Bearish engulfing", "Hammer", "Shooting star", "Morning star", "Evening star", "Gravestone doji", "Bullish pin bar", "Bearish harami", "Tweezer top", "Piercing line", "Doji", "Spinning top", "Marubozu", "Dark cloud cover", "Bullish harami", "Tweezer bottom", "Three white soldiers", "Three black crows", "Hanging man", "Inverted hammer", "Dragonfly doji", "Outside bar", "Three inside up", "Bullish belt hold"];
 
 // Level plan: easy = clean textbook, medium = more context, hard = noisier.
 const PLAN: { slot: string; difficulty: Level["difficulty"]; pattern: string; rank: "top" | "mid" | "low"; loss?: boolean }[] = [
@@ -109,6 +177,28 @@ const PLAN: { slot: string; difficulty: Level["difficulty"]; pattern: string; ra
   { slot: "hard-2", difficulty: "hard", pattern: "harami-bear", rank: "mid" },
   { slot: "hard-3", difficulty: "hard", pattern: "tweezer-top", rank: "low", loss: true },
   { slot: "exam", difficulty: "exam", pattern: "piercing", rank: "mid" },
+  // Added levels (the first 11 keep their original patterns so saved progress stays valid).
+  { slot: "easy-4", difficulty: "easy", pattern: "inverted-hammer", rank: "top" },
+  { slot: "easy-5", difficulty: "easy", pattern: "dark-cloud", rank: "top" },
+  { slot: "easy-6", difficulty: "easy", pattern: "doji-dragonfly", rank: "top" },
+  { slot: "easy-7", difficulty: "easy", pattern: "hanging-man", rank: "top" },
+  { slot: "easy-8", difficulty: "easy", pattern: "engulfing-bull", rank: "top" },
+  { slot: "easy-9", difficulty: "easy", pattern: "shooting-star", rank: "top" },
+  { slot: "easy-10", difficulty: "easy", pattern: "piercing", rank: "top" },
+  { slot: "medium-4", difficulty: "medium", pattern: "harami-bull", rank: "mid" },
+  { slot: "medium-5", difficulty: "medium", pattern: "tweezer-bottom", rank: "mid" },
+  { slot: "medium-6", difficulty: "medium", pattern: "evening-star", rank: "mid" },
+  { slot: "medium-7", difficulty: "medium", pattern: "three-soldiers", rank: "mid" },
+  { slot: "medium-8", difficulty: "medium", pattern: "three-crows", rank: "mid" },
+  { slot: "medium-9", difficulty: "medium", pattern: "outside-bar", rank: "mid" },
+  { slot: "medium-10", difficulty: "medium", pattern: "hammer", rank: "mid" },
+  { slot: "hard-4", difficulty: "hard", pattern: "tweezer-top", rank: "mid" },
+  { slot: "hard-5", difficulty: "hard", pattern: "harami-bear", rank: "low" },
+  { slot: "hard-6", difficulty: "hard", pattern: "hammer", rank: "low", loss: true },
+  { slot: "hard-7", difficulty: "hard", pattern: "engulfing-bear", rank: "low" },
+  { slot: "hard-8", difficulty: "hard", pattern: "morning-star", rank: "low" },
+  { slot: "hard-9", difficulty: "hard", pattern: "dark-cloud", rank: "low" },
+  { slot: "hard-10", difficulty: "hard", pattern: "shooting-star", rank: "low", loss: true },
 ];
 
 const BEFORE = 45;
