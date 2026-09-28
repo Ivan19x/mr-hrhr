@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PlaySession } from "@/components/PlaySession";
 import { getLevelById } from "@/services/levelService";
+import { levelUnlocked, levelsFor, lockReason, modeUnlocked } from "@/lib/progression";
+import { rankedKey } from "@/services/rankedService";
 import { BLOWN_BALANCE, RECAP_XP_COST, dayKey, getProfile, recapitalise } from "@/services/progressService";
 import type { GameMode, Level, Profile } from "@/types/game";
 
@@ -44,6 +46,25 @@ function PlayPage() {
   if (!level || !profile)
     return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading level…</div>;
 
+  // Campaign levels must be unlocked in order (typing a URL doesn't skip the queue).
+  if (mode === "campaign") {
+    const list = levelsFor(level.strategyId);
+    const idx = list.findIndex((l) => l.id === level.id);
+    if (idx >= 0 && !levelUnlocked(profile, list, idx)) {
+      const reason = lockReason(profile, level.strategyId);
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-4xl">🔒</p>
+          <p className="text-xl font-bold">This level is locked</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{reason ? `${reason}.` : "Finish the previous level first."}</p>
+          <Link to="/map" className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+            Strategy map
+          </Link>
+        </div>
+      );
+    }
+  }
+
   // A blown account can't take scored trades until it is recapitalised.
   if (profile.balance < BLOWN_BALANCE)
     return (
@@ -64,6 +85,20 @@ function PlayPage() {
             Recapitalise (−{RECAP_XP_COST} XP)
           </button>
         </div>
+      </div>
+    );
+
+  // Ranked: unlocked by rank, one attempt per chart per season.
+  if (mode === "ranked" && (!modeUnlocked(profile, "ranked") || (profile.attempts[rankedKey(levelId)] ?? 0) > 0))
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-xl font-bold">{modeUnlocked(profile, "ranked") ? "You've already played this ranked chart" : "Ranked is locked"}</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          {modeUnlocked(profile, "ranked") ? "Each ranked chart allows one attempt per season." : "Reach Analyst I to play Ranked."}
+        </p>
+        <Link to="/ranked" className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+          Back to Ranked
+        </Link>
       </div>
     );
 

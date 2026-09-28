@@ -31,6 +31,7 @@ export const DEFAULT_PROFILE: Profile = {
   practiceXp: { day: "", xp: 0 },
   dailyDone: {},
   recaps: 0,
+  friends: [],
   settings: { sound: true, theme: "dark", chartColors: "classic", tutorials: true },
 };
 
@@ -53,6 +54,7 @@ export async function getProfile(): Promise<Profile> {
     quizAttempts: { ...p.quizAttempts },
     practiceXp: p.practiceXp ?? d.practiceXp,
     dailyDone: { ...p.dailyDone },
+    friends: [...(p.friends ?? [])],
     settings: { ...d.settings, ...p.settings },
   };
 }
@@ -223,6 +225,14 @@ export async function recordForfeit(
   if (trade) p.totals.sumR -= 1;
   await saveProfile(p);
   return { firstAttempt, balance: p.balance };
+}
+
+/** Follow / unfollow another profile on this device. */
+export async function toggleFriend(id: string): Promise<Profile> {
+  const p = await getProfile();
+  p.friends = p.friends.includes(id) ? p.friends.filter((f) => f !== id) : [...p.friends, id];
+  await saveProfile(p);
+  return p;
 }
 
 /** Recapitalise a blown account back to $10,000 in exchange for XP. */

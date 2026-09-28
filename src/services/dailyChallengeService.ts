@@ -10,11 +10,3 @@ export async function getDailyChallenge(): Promise<{ level: LevelMeta; endsAt: n
   const endsAt = (Math.floor(Date.now() / 86400000) + 1) * 86400000;
   return { level, endsAt };
 }
-
-export async function getSeasonInfo() {
-  const now = Date.now();
-  const weekMs = 7 * 86400000;
-  const endsAt = now + (weekMs - (now % weekMs));
-  // Seasons start with online accounts; there is no rank until then.
-  return { name: "Season 1", endsAt, yourRank: null as number | null };
-}

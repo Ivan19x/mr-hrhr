@@ -18,6 +18,7 @@ import { resetProgress, updateSettings } from "@/services/progressService";
 import { AuthError, changePassword, currentUserSync, deleteAccount, signOut } from "@/services/authService";
 import { deleteUserData } from "@/services/db";
 import { sfx } from "@/lib/sound";
+import { resetGuide } from "@/components/WebGuide";
 import type { Profile } from "@/types/game";
 
 export const Route = createFileRoute("/settings")({
@@ -114,6 +115,20 @@ function SettingsPage() {
           <Row title="Reset progress" desc="Clears XP, stars, badges and stats on this device.">
             <button onClick={() => setConfirmReset(true)} className="rounded-lg bg-destructive/15 px-4 py-1.5 text-sm font-medium text-destructive">
               Reset
+            </button>
+          </Row>
+        </div>
+
+        <div className="panel mt-6 divide-y divide-border">
+          <Row title="Quick guide" desc="Take the short tour of the site again.">
+            <button
+              onClick={() => {
+                resetGuide();
+                navigate({ to: "/home" });
+              }}
+              className="rounded-lg bg-secondary px-4 py-1.5 text-sm font-medium"
+            >
+              Replay guide
             </button>
           </Row>
         </div>

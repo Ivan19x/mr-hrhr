@@ -1,17 +1,31 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,
-//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,
-//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+// MR_HRHR build: TanStack Start (React SSR) + Tailwind, with Nitro producing the
+// server bundle. On Vercel the Vercel preset is used automatically.
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { nitro } from "nitro/vite";
 
-export default defineConfig({
-  // On Vercel, build for Vercel's serverless platform (Lovable builds keep their own target).
-  ...(process.env["VERCEL"] ? { nitro: { preset: "vercel" } } : {}),
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
+export default defineConfig(({ command }) => ({
+  plugins: [
+    tailwindcss(),
+    tsConfigPaths({ projects: ["./tsconfig.json"] }),
+    tanstackStart({
+      // Server code must never be imported into the browser bundle.
+      importProtection: { behavior: "error", client: { files: ["**/server/**"], specifiers: ["server-only"] } },
+      // SSR error wrapper (src/server.ts).
+      server: { entry: "server" },
+    }),
+    ...(command === "build" ? [nitro(process.env["VERCEL"] ? { preset: "vercel" } : {})] : []),
+    viteReact(),
+  ],
+  resolve: {
+    alias: { "@": `${process.cwd()}/src` },
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
-});
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime"],
+  },
+  server: { port: 5173 },
+}));

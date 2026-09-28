@@ -12,7 +12,8 @@ import { getJournal } from "@/services/journalService";
 import { analyze } from "@/engine/analyst";
 import { ALL_LESSONS, TOTAL_LESSONS } from "@/data/academy";
 import { getCurrentUser, type AuthUser } from "@/services/authService";
-import { getDailyChallenge, getSeasonInfo } from "@/services/dailyChallengeService";
+import { getDailyChallenge } from "@/services/dailyChallengeService";
+import { seasonInfo } from "@/services/rankedService";
 import { rankForXp, RANK_STEPS } from "@/data/curriculum";
 import { continueLevel, levelLabel, modeUnlocked, strategyById, timedPool, MODE_UNLOCK_RANK } from "@/lib/progression";
 
@@ -42,11 +43,11 @@ function HomePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [daily, setDaily] = useState<{ levelId: string; endsAt: number } | null>(null);
-  const [season, setSeason] = useState<{ name: string; endsAt: number; yourRank: number | null } | null>(null);
+  const [season, setSeason] = useState<{ name: string; endsAt: number } | null>(null);
 
   useEffect(() => {
     getCurrentUser().then(setUser);
-    getSeasonInfo().then(setSeason);
+    setSeason(seasonInfo());
     setApp(isApp());
     getJournal().then((j) => setAnalyst(analyze(j).headline));
   }, []);
@@ -177,12 +178,12 @@ function HomePage() {
           <ModeCard
             icon={Trophy}
             title="Ranked Season"
-            desc="Weekly competitions on fresh real charts. Starts when online accounts launch."
+            desc="Five real charts a week, one attempt each. Weekly standings."
             tag={`Ends ${seasonCountdown}`}
             offline={app && !online}
             locked={!rankedOk}
             lockText={`Reach ${RANK_STEPS[MODE_UNLOCK_RANK.ranked]!.name}`}
-            onClick={() => toast("Ranked charts arrive when the season server goes live.")}
+            onClick={() => navigate({ to: "/ranked" })}
           />
         </div>
       </section>

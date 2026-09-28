@@ -1,25 +1,45 @@
-# My HR Helper
+# MR_HRHR
 
-MR-HRHR.
+A trading school as a game. Players learn to trade on **real historical market charts**: they mark what they see (candle patterns, swings, levels, fair value gaps, order blocks…), plan a trade with a stop loss and target, answer questions about their reasoning, then watch what the real market did next.
 
-This project was built with [Lovable](https://lovable.dev).
+- **16 strategies, 176 levels** across 4 tiers, from candlesticks to confluence. Every level is a real chart (crypto, forex, gold, indices, stocks).
+- **Academy**: 75 lessons with real-chart examples, interactive widgets and quizzes, plus a glossary covering the full syllabus.
+- **Analyst**: reviews every trade and recommends what to work on.
+- **Modes**: Campaign, Practice, Timed Challenge, Daily Challenge, weekly Ranked Season.
+- Profiles are stored locally in the browser (no server yet).
 
-## Build with Lovable
+## Run locally
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/599f2fea-6f2e-40ab-aa1e-49227780c400).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js 20+.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+npm install
+npm run dev        # http://localhost:5173
 ```
-# mr-hrhr
+
+## Build
+
+```sh
+npm run build      # Node server output in .output/
+```
+
+On Vercel the build targets Vercel automatically.
+
+## Real chart data
+
+Chart data is downloaded once, cut into small sections, and baked into `src/data/real/`. The raw downloads are temporary.
+
+```sh
+npm run charts:update   # download → cut lesson examples → build all levels
+```
+
+## Project layout
+
+| Path | What |
+|---|---|
+| `src/routes/` | Pages (TanStack Router file routes) |
+| `src/components/` | Game screen, chart, tutorials, academy widgets |
+| `src/engine/` | Pure game logic: scoring, marking, trades, analyst, anti-cheat transform |
+| `src/data/` | Curriculum, academy lessons, level index, real chart data |
+| `src/services/` | Local profile, progress, journal, leaderboards |
+| `scripts/` | Chart download and level / example extraction |

@@ -11,6 +11,7 @@ import { subscribeProfile } from "@/services/progressService";
 import { rankForXp } from "@/data/curriculum";
 import { RankBadge } from "./RankBadge";
 import { Logo } from "./Logo";
+import { WebGuide, guideSeen } from "./WebGuide";
 
 const NAV = [
   { to: "/home", label: "Home", icon: Home, mobile: true },
@@ -68,6 +69,11 @@ export function SyncIndicator() {
 export function AppShell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   const profile = useProfile();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  // New players get a quick guided tour on their first visit to Home (skippable).
+  const [guide, setGuide] = useState(false);
+  useEffect(() => {
+    if (path === "/home" && !guideSeen()) setGuide(true);
+  }, [path]);
   const rank = profile ? rankForXp(profile.xp) : null;
 
   return (
@@ -83,6 +89,7 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
               return (
                 <Link
                   key={n.to}
+                  data-tour={n.to}
                   to={n.to}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -105,7 +112,7 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
               <Settings className="h-5 w-5" />
             </Link>
             {rank && (
-              <Link to="/profile" className="flex items-center gap-2">
+              <Link to="/profile" className="flex items-center gap-2" data-tour="rank">
                 <RankBadge index={rank.index} sub={rank.sub} size={30} />
                 <span className="hidden text-sm font-semibold lg:inline">{rank.name}</span>
               </Link>
@@ -123,6 +130,8 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
         </Link>
       </footer>
 
+      {guide && <WebGuide onDone={() => setGuide(false)} />}
+
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card md:hidden">
         {NAV.filter((n) => n.mobile).map((n) => {
@@ -131,6 +140,7 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
           return (
             <Link
               key={n.to}
+              data-tour={n.to}
               to={n.to}
               className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
                 active ? "text-electric" : "text-muted-foreground"

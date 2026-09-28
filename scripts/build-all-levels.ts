@@ -1,4 +1,5 @@
-// Builds EVERY playable strategy's levels from REAL charts (Tier 1 → Tier 4).
+// Builds every playable strategy's levels from REAL charts (Tier 1 → Tier 4), except
+// Candlesticks (scripts/build-candle-levels.ts). Pass strategy ids to rebuild only those.
 //   node scripts/build-all-levels.ts        (after scripts/fetch-charts.mjs)
 // Per strategy: tutorial + 3 easy + 3 medium + 3 hard + exam = 11 levels.
 // Output (compact): src/data/real/levels/<strategy>.json + src/data/real/levelIndex.json
@@ -194,6 +195,22 @@ const SPECS: Spec[] = [
     tf: () => ({ truth: "Swing highs and lows are the turning points that define structure.", lie: "Every red candle is a swing low." }),
     tapPrompt: () => "Tap the most recent swing low.",
     story: () => "Price swung between the same highs and lows. Marking the **swing highs** and **swing lows** shows the structure: here a range, where buying the latest swing low near the floor keeps risk small.",
+  },
+  {
+    strategy: "bos",
+    tier: 2,
+    hardLoss: true,
+    find: () => bosSetups(),
+    mcq: () => ({ prompt: "What did price just do at the marked level?", right: "Broke a key swing point with a candle close", wrong: ["Formed a perfect double top", "Hit a round number and stopped", "Nothing: it's random noise"] }),
+    tf: (s) =>
+      s.dir === "buy"
+        ? { truth: "A close above the last swing high confirms buyers are in control.", lie: "A wick above the swing high is enough to confirm a break of structure." }
+        : { truth: "A close below the last swing low confirms sellers are in control.", lie: "A wick below the swing low is enough to confirm a break of structure." },
+    tapPrompt: (s) => (s.dir === "buy" ? "Tap the candle that closed above the swing high." : "Tap the candle that closed below the swing low."),
+    story: (s) =>
+      s.dir === "buy"
+        ? "Price made a higher low, then a candle **closed above the last swing high**: a **Break of Structure**. Buyers are still in control, so the trade is a buy with the stop below the pullback low."
+        : "Price made a lower high, then a candle **closed below the last swing low**: a **Break of Structure**. Sellers are still in control, so the trade is a sell with the stop above the pullback high.",
   },
   {
     strategy: "choch",
@@ -516,17 +533,6 @@ for (const spec of SPECS) {
   await writeFile(new URL(`${spec.strategy}.json`, OUT), JSON.stringify(levels));
   const wins = levels.filter((l) => /reached the 2R/.test(l.explanation)).length;
   console.log(`✓ ${spec.strategy.padEnd(16)} ${levels.length} levels (${wins} winners) · ${[...new Set(levels.map((l) => `${l.source!.label} ${l.source!.timeframe}`))].slice(0, 4).join(", ")}…`);
-}
-
-// Candlesticks and BOS: convert their existing real-chart levels into the same compact format.
-for (const [strategy, file] of [["candles", "candleLevels.json"], ["bos", "bosCampaign.json"]] as const) {
-  try {
-    const src: Level[] = JSON.parse(await readFile(new URL(`../src/data/real/${file}`, import.meta.url), "utf8"));
-    const compact: Compact[] = src.map(({ candles, ...rest }) => ({ ...rest, rows: candles.map((c) => [c.o, c.h, c.l, c.c]) }));
-    await writeFile(new URL(`${strategy}.json`, OUT), JSON.stringify(compact));
-  } catch {
-    // already converted
-  }
 }
 
 // Level index (small, loaded up front).

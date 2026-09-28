@@ -3,7 +3,8 @@
 // Each level: the replay stops on the candle that completes a real pattern.
 // The player marks it, trades it (stop beyond the pattern, 2R target), answers
 // questions, then sees what the real market did next.
-// Output: src/data/real/candleLevels.json (the raw cache can then be deleted).
+// Output: src/data/real/levels/candles.json (compact; the raw cache can then be deleted).
+// Run scripts/build-all-levels.ts afterwards to refresh the level index.
 import { readFile, writeFile } from "node:fs/promises";
 import { CTX, D, loadContexts, type Cand, type DS } from "./detect.ts";
 import type { AnswerMark, Candle, Level, Question } from "../src/types/game.ts";
@@ -212,5 +213,6 @@ const levels = PLAN.map((slot, n) => {
   console.log(`✓ ${l.id.padEnd(24)} ${P[slot.pattern]!.name.padEnd(18)} ← ${l.source!.label} ${l.source!.timeframe}`);
   return l;
 });
-await writeFile(new URL("../src/data/real/candleLevels.json", import.meta.url), JSON.stringify(levels));
+const compact = levels.map(({ candles, ...rest }) => ({ ...rest, rows: candles.map((c) => [c.o, c.h, c.l, c.c]) }));
+await writeFile(new URL("../src/data/real/levels/candles.json", import.meta.url), JSON.stringify(compact));
 console.log(`\nWrote ${levels.length} Candlestick levels from real charts.`);

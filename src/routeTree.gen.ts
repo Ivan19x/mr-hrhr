@@ -18,6 +18,7 @@ import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RankedRouteImport } from './routes/ranked'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AcademyIndexRouteImport } from './routes/academy.index'
 import { Route as AcademyLessonIdRouteImport } from './routes/academy.$lessonId'
@@ -69,6 +70,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RankedRoute = RankedRouteImport.update({
+  id: '/ranked',
+  path: '/ranked',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
+  '/ranked': typeof RankedRoute
   '/settings': typeof SettingsRoute
   '/academy/$lessonId': typeof AcademyLessonIdRoute
   '/levels/$strategyId': typeof LevelsStrategyIdRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
+  '/ranked': typeof RankedRoute
   '/settings': typeof SettingsRoute
   '/academy/$lessonId': typeof AcademyLessonIdRoute
   '/levels/$strategyId': typeof LevelsStrategyIdRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
+  '/ranked': typeof RankedRoute
   '/settings': typeof SettingsRoute
   '/academy/$lessonId': typeof AcademyLessonIdRoute
   '/levels/$strategyId': typeof LevelsStrategyIdRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/practice'
     | '/profile'
+    | '/ranked'
     | '/settings'
     | '/academy/$lessonId'
     | '/levels/$strategyId'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/practice'
     | '/profile'
+    | '/ranked'
     | '/settings'
     | '/academy/$lessonId'
     | '/levels/$strategyId'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/practice'
     | '/profile'
+    | '/ranked'
     | '/settings'
     | '/academy/$lessonId'
     | '/levels/$strategyId'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
+  RankedRoute: typeof RankedRoute
   SettingsRoute: typeof SettingsRoute
   AcademyLessonIdRoute: typeof AcademyLessonIdRoute
   LevelsStrategyIdRoute: typeof LevelsStrategyIdRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ranked': {
+      id: '/ranked'
+      path: '/ranked'
+      fullPath: '/ranked'
+      preLoaderRoute: typeof RankedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
+  RankedRoute: RankedRoute,
   SettingsRoute: SettingsRoute,
   AcademyLessonIdRoute: AcademyLessonIdRoute,
   LevelsStrategyIdRoute: LevelsStrategyIdRoute,

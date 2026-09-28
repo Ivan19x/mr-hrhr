@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { LessonBlocks } from "@/components/academy/LessonBlocks";
 import { useProfile } from "@/hooks/use-profile";
 import { findLesson } from "@/data/academy";
+import { strategyById } from "@/lib/progression";
 import { getQuizAttempts, quizXp, recordLessonQuiz, registerQuizAttempt, LESSON_PASS } from "@/services/academyService";
 import { getProfile } from "@/services/progressService";
 import { mulberry32 } from "@/engine/transform";
@@ -28,7 +29,8 @@ export const Route = createFileRoute("/academy/$lessonId")({
 });
 
 // Lessons that have a playable chart game to practise on.
-const PLAYABLE: Record<string, string> = { "bos-choch": "bos", "strat-bos": "bos", trends: "bos" };
+// Lessons with scored real-chart levels to practise on (lesson id → strategy).
+const PLAYABLE: Record<string, string> = { "candle-ohlc": "candles", "buyers-sellers": "candles", "wicks": "candles", "body-momentum": "candles", "marubozu": "candles", "doji": "candles", "hammer-hanging-man": "candles", "inverted-hammer-shooting-star": "candles", "spinning-top": "candles", "pin-bar": "candles", "engulfing": "candles", "harami": "candles", "tweezers": "candles", "piercing-dark-cloud": "candles", "inside-outside-bar": "candles", "three-candle": "candles", "trends": "trends", "trendlines-channels": "trends", "strat-trend-pullback": "sltp", "support-resistance": "sr", "ranges": "sr", "strat-range": "rr", "strat-breakout-retest": "sr", "order-types": "sltp", "trade-management": "sltp", "risk-per-trade": "rr", "rr-expectancy": "rr", "bos-choch": "bos", "strat-bos": "bos", "strat-choch-reversal": "choch", "breakout-fakeout": "liquidity", "liquidity": "liquidity", "order-blocks": "orderblocks", "fair-value-gaps": "fvg", "premium-discount": "premiumdiscount", "fibonacci": "premiumdiscount", "confluence": "confluence", "strat-smc-ob-fvg": "confluence", "timeframes": "mtf", "strat-top-down": "mtf", "sessions": "sessions", "strat-london-breakout": "sessions" };
 
 function LessonPage() {
   const { lessonId } = Route.useParams();
@@ -86,7 +88,7 @@ function LessonPage() {
             <Gamepad2 className="h-6 w-6 text-electric" />
             <div>
               <p className="font-semibold">Practise this on real charts</p>
-              <p className="text-sm text-muted-foreground">Play the scored Break of Structure levels.</p>
+              <p className="text-sm text-muted-foreground">Play the scored {strategyById(PLAYABLE[lesson.id]!)?.name} levels, all cut from real market charts.</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-electric" />
           </Link>

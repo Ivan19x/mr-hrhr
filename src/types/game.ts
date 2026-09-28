@@ -139,6 +139,8 @@ export type Profile = {
   dailyDone: Record<string, boolean>;
   /** Times the virtual account was recapitalised after being blown. */
   recaps: number;
+  /** Local profile ids this player follows (Friends leaderboard). */
+  friends: string[];
   settings: {
     sound: boolean;
     theme: "dark" | "light";
