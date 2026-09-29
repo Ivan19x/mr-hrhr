@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Star, Crown } from "lucide-react";
+import { Star } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RankBadge } from "@/components/RankBadge";
 import { BADGE_LABELS } from "@/components/PlaySession";
@@ -133,9 +133,6 @@ function ProfilePage() {
               </div>
             </>
           )}
-          <p className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Crown className="h-3 w-3 text-gold" /> Premium adds per-strategy history and trend charts.
-          </p>
         </section>
 
         {/* Badges */}

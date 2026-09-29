@@ -1,5 +1,5 @@
 // App chrome shared by every non-game screen: header with rank + sync status,
-// bottom nav on mobile, top nav on desktop, and the institutional footer link.
+// bottom nav on mobile, top nav on desktop, and the footer.
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Cloud, CloudOff, Home, Gamepad2, Trophy, User, Settings, RefreshCw, GraduationCap, BrainCircuit } from "lucide-react";
@@ -124,9 +124,9 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
       <main className={`mx-auto w-full flex-1 px-4 py-6 ${wide ? "max-w-7xl" : "max-w-6xl"}`}>{children}</main>
 
       <footer className="hidden border-t border-border py-6 text-center text-xs text-muted-foreground md:block">
-        MR_HRHR · Virtual balances only — no real money ·{" "}
-        <Link to="/institutional" className="text-electric hover:underline">
-          For universities &amp; trading clubs
+        MR_HRHR · Free to play · Virtual balances only, no real money · Education, not financial advice ·{" "}
+        <Link to="/resources" className="text-electric hover:underline">
+          Resources
         </Link>
       </footer>
 

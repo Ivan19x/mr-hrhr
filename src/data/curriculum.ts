@@ -3,8 +3,8 @@ import type { Strategy, Tier } from "@/types/game";
 export const TIERS: Tier[] = [
   { tier: 1, name: "Foundations", premium: false },
   { tier: 2, name: "Market Structure", premium: false },
-  { tier: 3, name: "Smart Money Concepts", premium: true },
-  { tier: 4, name: "Combined Setups", premium: true },
+  { tier: 3, name: "Smart Money Concepts", premium: false },
+  { tier: 4, name: "Combined Setups", premium: false },
 ];
 
 export const STRATEGIES: Strategy[] = [
@@ -17,13 +17,13 @@ export const STRATEGIES: Strategy[] = [
   { id: "bos", name: "Break of Structure", tier: 2, premium: false, description: "Spot the moment a trend proves itself — or breaks.", playable: true },
   { id: "choch", name: "Change of Character", tier: 2, premium: false, description: "The first whisper of a reversal.", playable: true },
   { id: "contrev", name: "Continuation vs Reversal", tier: 2, premium: false, description: "Is the move pausing or ending?", playable: true },
-  { id: "fvg", name: "Fair Value Gaps", tier: 3, premium: true, description: "Trade the imbalances price leaves behind.", playable: true },
-  { id: "orderblocks", name: "Order Blocks", tier: 3, premium: true, description: "Where the big players loaded up.", playable: true },
-  { id: "liquidity", name: "Liquidity Sweeps", tier: 3, premium: true, description: "Stop hunts and how to ride them.", playable: true },
-  { id: "premiumdiscount", name: "Premium & Discount Zones", tier: 3, premium: true, description: "Buy cheap, sell dear — measured.", playable: true },
-  { id: "mtf", name: "Multi-Timeframe Analysis", tier: 4, premium: true, description: "Align the big picture with the entry.", playable: true },
-  { id: "sessions", name: "Trading Sessions", tier: 4, premium: true, description: "London and New York move markets.", playable: true },
-  { id: "confluence", name: "Confluence", tier: 4, premium: true, description: "Stack reasons until the trade is obvious.", playable: true },
+  { id: "fvg", name: "Fair Value Gaps", tier: 3, premium: false, description: "Trade the imbalances price leaves behind.", playable: true },
+  { id: "orderblocks", name: "Order Blocks", tier: 3, premium: false, description: "Where the big players loaded up.", playable: true },
+  { id: "liquidity", name: "Liquidity Sweeps", tier: 3, premium: false, description: "Stop hunts and how to ride them.", playable: true },
+  { id: "premiumdiscount", name: "Premium & Discount Zones", tier: 3, premium: false, description: "Buy cheap, sell dear — measured.", playable: true },
+  { id: "mtf", name: "Multi-Timeframe Analysis", tier: 4, premium: false, description: "Align the big picture with the entry.", playable: true },
+  { id: "sessions", name: "Trading Sessions", tier: 4, premium: false, description: "London and New York move markets.", playable: true },
+  { id: "confluence", name: "Confluence", tier: 4, premium: false, description: "Stack reasons until the trade is obvious.", playable: true },
 ];
 
 const MAJOR_NAMES = ["Intern", "Junior Analyst", "Analyst", "Trader", "Senior Trader", "Fund Manager"] as const;

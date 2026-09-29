@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { checkCloud, type CloudStatus } from "@/lib/supabase";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Switch } from "@/components/ui/switch";
@@ -134,8 +133,6 @@ function SettingsPage() {
           </Row>
         </div>
 
-        <CloudRow />
-
         <AccountSection />
       </div>
 
@@ -251,25 +248,3 @@ function AccountSection() {
   );
 }
 
-/** Supabase connection status (accounts still live on this device until cloud accounts launch). */
-function CloudRow() {
-  const [status, setStatus] = useState<CloudStatus | null>(null);
-  useEffect(() => {
-    checkCloud().then(setStatus).catch((e: Error) => setStatus({ state: "error", message: e.message }));
-  }, []);
-  const text =
-    !status ? "Checking…"
-    : status.state === "off" ? "Not configured on this build. Progress is saved on this device."
-    : status.state === "ok" ? `Connected to Supabase${status.players !== null ? ` · ${status.players} cloud players` : ""}. Progress is still saved on this device for now.`
-    : `Supabase is set but not reachable: ${status.message}`;
-  const tone = status?.state === "ok" ? "bg-up" : status?.state === "error" ? "bg-destructive" : "bg-muted-foreground";
-  return (
-    <div className="panel mt-6 flex items-center gap-3 p-4">
-      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone}`} />
-      <div>
-        <p className="font-semibold">Cloud connection</p>
-        <p className="text-sm text-muted-foreground">{text}</p>
-      </div>
-    </div>
-  );
-}

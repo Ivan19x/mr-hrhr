@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Crown, Lock, Star, CheckCircle2 } from "lucide-react";
+import { Lock, Star, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { useProfile } from "@/hooks/use-profile";
@@ -43,11 +43,6 @@ function MapPage() {
                 <div className="rounded-md bg-background/80 pr-2">
                   <p className="flex items-center gap-2 font-bold">
                     Tier {tier.tier}: {tier.name}
-                    {tier.premium && (
-                      <span className="flex items-center gap-1 rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-gold">
-                        <Crown className="h-3 w-3" /> Premium · free in beta
-                      </span>
-                    )}
                   </p>
                   {!unlocked && (
                     <div className="mt-1 w-56">

@@ -125,7 +125,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-const PUBLIC_PATHS = ["/", "/institutional"];
+const PUBLIC_PATHS = ["/"];
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -148,7 +148,7 @@ function RootComponent() {
     });
   }, [path]);
 
-  // Every page except the sign-in screen and the institutional page needs a local profile.
+  // Every page except the sign-in screen needs a local profile.
   useEffect(() => {
     if (PUBLIC_PATHS.includes(path)) return;
     if (!currentUserSync()) router.navigate({ to: "/", replace: true });

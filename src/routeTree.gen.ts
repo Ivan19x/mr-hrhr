@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalystRouteImport } from './routes/analyst'
 import { Route as GlossaryRouteImport } from './routes/glossary'
 import { Route as HomeRouteImport } from './routes/home'
-import { Route as InstitutionalRouteImport } from './routes/institutional'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as PracticeRouteImport } from './routes/practice'
@@ -44,11 +43,6 @@ const GlossaryRoute = GlossaryRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InstitutionalRoute = InstitutionalRouteImport.update({
-  id: '/institutional',
-  path: '/institutional',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
@@ -112,7 +106,6 @@ export interface FileRoutesByFullPath {
   '/analyst': typeof AnalystRoute
   '/glossary': typeof GlossaryRoute
   '/home': typeof HomeRoute
-  '/institutional': typeof InstitutionalRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
@@ -130,7 +123,6 @@ export interface FileRoutesByTo {
   '/analyst': typeof AnalystRoute
   '/glossary': typeof GlossaryRoute
   '/home': typeof HomeRoute
-  '/institutional': typeof InstitutionalRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
@@ -149,7 +141,6 @@ export interface FileRoutesById {
   '/analyst': typeof AnalystRoute
   '/glossary': typeof GlossaryRoute
   '/home': typeof HomeRoute
-  '/institutional': typeof InstitutionalRoute
   '/leaderboards': typeof LeaderboardsRoute
   '/map': typeof MapRoute
   '/practice': typeof PracticeRoute
@@ -169,7 +160,6 @@ export interface FileRouteTypes {
     | '/analyst'
     | '/glossary'
     | '/home'
-    | '/institutional'
     | '/leaderboards'
     | '/map'
     | '/practice'
@@ -187,7 +177,6 @@ export interface FileRouteTypes {
     | '/analyst'
     | '/glossary'
     | '/home'
-    | '/institutional'
     | '/leaderboards'
     | '/map'
     | '/practice'
@@ -205,7 +194,6 @@ export interface FileRouteTypes {
     | '/analyst'
     | '/glossary'
     | '/home'
-    | '/institutional'
     | '/leaderboards'
     | '/map'
     | '/practice'
@@ -224,7 +212,6 @@ export interface RootRouteChildren {
   AnalystRoute: typeof AnalystRoute
   GlossaryRoute: typeof GlossaryRoute
   HomeRoute: typeof HomeRoute
-  InstitutionalRoute: typeof InstitutionalRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
   MapRoute: typeof MapRoute
   PracticeRoute: typeof PracticeRoute
@@ -266,13 +253,6 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/institutional': {
-      id: '/institutional'
-      path: '/institutional'
-      fullPath: '/institutional'
-      preLoaderRoute: typeof InstitutionalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboards': {
@@ -360,7 +340,6 @@ const rootRouteChildren: RootRouteChildren = {
   AnalystRoute: AnalystRoute,
   GlossaryRoute: GlossaryRoute,
   HomeRoute: HomeRoute,
-  InstitutionalRoute: InstitutionalRoute,
   LeaderboardsRoute: LeaderboardsRoute,
   MapRoute: MapRoute,
   PracticeRoute: PracticeRoute,
