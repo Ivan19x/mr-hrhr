@@ -36,3 +36,8 @@ scripts/.cache/
 
 # Vercel build output
 .vercel/
+
+# Local secrets (Supabase keys etc.): never commit
+.env
+.env.*
+!.env.example
