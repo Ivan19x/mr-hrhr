@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, Gamepad2, Lock, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, RotateCcw, XCircle, Gamepad2, Lock, Star } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { LessonBlocks } from "@/components/academy/LessonBlocks";
 import { useProfile } from "@/hooks/use-profile";
@@ -134,7 +134,7 @@ function LessonPage() {
               </Link>
             ) : (
               <span className="flex max-w-[55%] items-center gap-2 text-right text-xs text-muted-foreground">
-                <Lock className="h-3.5 w-3.5 shrink-0" /> Pass the quiz and play the game to open the next lesson
+                <Lock className="h-3.5 w-3.5 shrink-0" /> {lessonGames(lesson.id).length ? "Pass the quiz and play the game to open the next lesson" : "Pass the quiz to open the next lesson"}
               </span>
             ))}
         </nav>
@@ -323,7 +323,18 @@ function Quiz({ lessonId, questions: source }: { lessonId: string; questions: Qu
 function LessonGame({ lessonId, profile }: { lessonId: string; profile: Profile }) {
   const navigate = useNavigate();
   const games = lessonGames(lessonId);
-  if (games.length === 0) return null;
+  if (games.length === 0)
+    return (
+      <section className="panel mt-6 flex gap-3 p-5">
+        <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-electric" />
+        <div>
+          <p className="font-semibold">General knowledge</p>
+          <p className="text-sm text-muted-foreground">
+            This one is rare on real charts, so it's taught with its description and the real example above instead of a game. Passing the quiz completes the lesson.
+          </p>
+        </div>
+      </section>
+    );
   const passed = quizPassed(profile, lessonId);
   const done = gamesDone(profile, lessonId);
   const found = findLesson(lessonId);

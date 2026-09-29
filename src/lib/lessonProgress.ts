@@ -40,7 +40,8 @@ export function lessonLockReason(p: Profile, lessonId: string): string | null {
   if (lessonUnlocked(p, lessonId)) return null;
   const k = ALL_LESSONS.findIndex((x) => x.lesson.id === lessonId);
   const prev = ALL_LESSONS[k - 1]?.lesson;
-  return prev ? `Finish "${prev.title}" first: pass its quiz and play its game` : "Locked";
+  if (!prev) return "Locked";
+  return lessonGames(prev.id).length ? `Finish "${prev.title}" first: pass its quiz and play its game` : `Finish "${prev.title}" first: pass its quiz`;
 }
 
 export function lessonGameUnlocked(p: Profile, lessonId: string, index: number): boolean {

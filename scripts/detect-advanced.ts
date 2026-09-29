@@ -1531,6 +1531,23 @@ D["ote-game"] = (x) => {
   return out;
 };
 
+// Single-candle reversal shapes for GAMES: same shape and location rules as the lesson
+// detectors, but no look-ahead (the real outcome decides whether the trade won).
+const hammerLike = (x: Ctx, i: number) => {
+  const r = x.range(i), b = x.body(i);
+  return b >= 0.12 * r && b <= 0.35 * r && x.lo(i) >= 2.2 * b && x.up(i) <= 0.1 * r && r >= 1.3 * x.atr[i]!;
+};
+const starLike = (x: Ctx, i: number) => {
+  const r = x.range(i), b = x.body(i);
+  return b >= 0.12 * r && b <= 0.35 * r && x.up(i) >= 2.2 * b && x.lo(i) <= 0.1 * r && r >= 1.3 * x.atr[i]!;
+};
+const lowest = (x: Ctx, i: number, k: number) => x.l[i]! <= x.loOf(i - k, i);
+const highest = (x: Ctx, i: number, k: number) => x.h[i]! >= x.hiOf(i - k, i);
+D["hammer-game"] = combo((x, i) => (hammerLike(x, i) && x.trend(i, 8) <= -3 && lowest(x, i, 12) ? { score: x.lo(i) / x.range(i) * 2 + Math.abs(x.trend(i, 8)) / 3 } : null));
+D["hanging-man-game"] = combo((x, i) => (hammerLike(x, i) && x.trend(i, 8) >= 2.5 && highest(x, i, 12) ? { score: x.lo(i) / x.range(i) * 2 + x.trend(i, 8) / 3 } : null));
+D["inverted-hammer-game"] = combo((x, i) => (starLike(x, i) && x.trend(i, 8) <= -3 && lowest(x, i, 12) ? { score: x.up(i) / x.range(i) * 2 + Math.abs(x.trend(i, 8)) / 3 } : null));
+D["shooting-star-game"] = combo((x, i) => (starLike(x, i) && x.trend(i, 8) >= 3 && highest(x, i, 12) ? { score: x.up(i) / x.range(i) * 2 + x.trend(i, 8) / 3 } : null));
+
 export const ADV_READY = true;
 void emaSeries;
 void highestOf;

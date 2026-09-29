@@ -8,6 +8,9 @@
 //   strategy – reuse a strategy track's real setups (different charts from the track)
 //   general  – real break-of-structure trades for concept lessons (brokers, psychology…)
 // Questions come from the lesson's own quiz, plus a tap question on the chart.
+// Rare patterns: only genuine examples of the lesson's own concept are used. If fewer
+// than 3 real charts exist, the lesson has no game and stays general knowledge
+// (its description and single real example), completed by its quiz.
 // Output: src/data/real/lessons/m<N>.json (compact levels) + src/data/real/lessonGames.json
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { AFTER, CTX, D, SPECS, TF, bosSetups, outcome, round, type Compact, type KeyMark, type Setup, type Spec } from "./level-specs.ts";
@@ -30,10 +33,12 @@ type Item = {
   zone?: { top: string; bot: string; from: string; to: string; type: "FVG" | "ORDER_BLOCK" };
   line?: { lv: string; from: string; to: string };
 };
-type Game = { kind: "pattern"; items: Item[]; also?: string[] } | { kind: "strategy"; ids: string[] } | { kind: "general" };
+type Game = { kind: "pattern"; items: Item[]; also?: string[] } | { kind: "strategy"; ids: string[] } | { kind: "general" } | { kind: "knowledge" };
 
 const S = (...ids: string[]): Game => ({ kind: "strategy", ids });
 const G: Game = { kind: "general" };
+/** General knowledge: description + one real example, no game. */
+const K: Game = { kind: "knowledge" };
 const P = (...items: Item[]): Game => ({ kind: "pattern", items });
 /** Pattern game that can also draw on a strategy track's kind of setup when the pattern is rare. */
 const PA = (also: string[], ...items: Item[]): Game => ({ kind: "pattern", items, also });
@@ -51,8 +56,8 @@ const GAMES: Record<string, Game> = {
   "timeframes-candles": P(pat("hammer", "hammer", "buy"), pat("shooting-star", "shooting star", "sell")),
   marubozu: P(pat("marubozu-bull", "bullish marubozu", "buy"), pat("marubozu-bear", "bearish marubozu", "sell")),
   doji: P(pat("doji-dragonfly", "dragonfly doji", "buy"), pat("doji-gravestone", "gravestone doji", "sell"), pat("doji", "doji after a strong move", "rev")),
-  "hammer-hanging-man": P(pat("hammer", "hammer", "buy"), pat("hanging-man", "hanging man", "sell"), pat("pin-bar", "hammer-shaped pin bar", "buy")),
-  "inverted-hammer-shooting-star": P(pat("inverted-hammer", "inverted hammer", "buy"), pat("shooting-star", "shooting star", "sell"), pat("doji-gravestone", "gravestone doji (shooting-star shape)", "sell"), pat("sfp-bear", "rejection wick above a swing high", "sell", "f")),
+  "hammer-hanging-man": P(pat("hammer-game", "hammer", "buy"), pat("hanging-man-game", "hanging man", "sell")),
+  "inverted-hammer-shooting-star": P(pat("inverted-hammer-game", "inverted hammer", "buy"), pat("shooting-star-game", "shooting star", "sell")),
   "spinning-top": P(pat("spinning-top", "spinning top", "rev")),
   "pin-bar": P(pat("pin-bar", "bullish pin bar", "buy")),
   engulfing: P(pat("engulfing-bull", "bullish engulfing", "buy"), pat("engulfing-bear", "bearish engulfing", "sell")),
@@ -91,9 +96,9 @@ const GAMES: Record<string, Game> = {
   "strat-smc-ob-fvg": S("confluence"), "strat-ma-trend": P(pat("ma200", "200 MA reclaim", "buy", "cross"), pat("golden-cross", "golden cross", "buy", "cross")), "strat-rsi-divergence": S("contrev"), "strat-london-breakout": P({ det: "london-breakout-1h", label: "London breakout of the Asian range", dir: "lv:dir", keys: ["br"], line: { lv: "hi", from: "a0", to: "a1" }, decide: "br" }), "strat-top-down": S("mtf"),
   "risk-per-trade": S("rr"), "rr-expectancy": S("rr"), "trade-management": S("trends", "bos"), "trading-plan": G, psychology: G, backtesting: G,
   // M13: advanced candles and gaps
-  "belt-hold-kicker": P(pat("belt-hold-bull", "bullish belt hold", "buy"), pat("kicker-bull", "bullish kicker", "buy"), pat("marubozu-bull", "opening marubozu (belt-hold shape)", "buy")),
+  "belt-hold-kicker": P(pat("belt-hold-bull", "bullish belt hold", "buy"), pat("kicker-bull", "bullish kicker", "buy")),
   "outside-three-inside": P(pat("outside-bar", "outside bar", "buy"), pat("three-inside-up", "three inside up", "buy")),
-  "three-methods-abandoned-baby": P(pat("rising-three", "rising three methods", "buy"), pat("abandoned-baby-bull", "abandoned baby", "buy"), { det: "bull-flag", label: "bull flag (the same continuation pause)", dir: "buy", keys: ["br"], decide: "br" }),
+  "three-methods-abandoned-baby": P(pat("rising-three", "rising three methods", "buy"), pat("abandoned-baby-bull", "abandoned baby", "buy")),
   hikkake: P({ det: "hikkake-bull", label: "hikkake", dir: "buy", keys: ["ib"], decide: "conf" }),
   "price-gaps": P(pat("gap-breakaway", "breakaway gap", "buy", "gap")),
   "renko-range-bars": S("trends"),
@@ -122,7 +127,7 @@ const GAMES: Record<string, Game> = {
   "keltner-donchian": P(pat("donchian-breakout", "Donchian breakout", "buy", "br")),
   "pivot-points": P({ det: "pivots-day", label: "pivot level reaction", dir: "pts:-kind", keys: ["touch"], decide: "touch+1" }),
   vwap: P(pat("anchored-vwap", "anchored VWAP bounce", "buy", "touch")),
-  "smt-divergence": P({ det: "ssl-sweep", label: "sweep of a low (confirm with SMT)", dir: "buy", line: { lv: "L", from: "A", to: "fk" }, decide: "fk" }),
+  "smt-divergence": K,
   // M17: liquidity deep dive
   "sell-side-clean-old": P({ det: "ssl-sweep", label: "sell-side liquidity sweep", dir: "buy", line: { lv: "L", from: "A", to: "fk" }, decide: "fk" }, { det: "liquidity-sweep", label: "buy-side liquidity sweep", dir: "sell", line: { lv: "L", from: "A", to: "fk" }, decide: "fk" }),
   "trendline-engineered-liquidity": P({ det: "trendline-run", label: "trendline liquidity run", dir: "sell", keys: ["a:L", "b:L", "c:L"], decide: "br" }),
@@ -132,12 +137,12 @@ const GAMES: Record<string, Game> = {
   "previous-highs-lows": P({ det: "pdh-sweep", label: "previous day high sweep", dir: "sell", line: { lv: "PH", from: "open", to: "sweep" }, decide: "sweep+1" }, { det: "pwh-sweep", label: "previous week high sweep", dir: "sell", line: { lv: "PH", from: "open", to: "sweep" }, decide: "sweep+1" }),
   // M18: imbalances
   "consequent-encroachment": P({ det: "fvg-ce", label: "fair value gap held at CE", dir: "buy", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
-  "first-presented-fvg": PA(["fvg"], { det: "first-fvg", label: "first presented FVG", dir: "lv:dir", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
+  "first-presented-fvg": P({ det: "first-fvg", label: "first presented FVG", dir: "lv:dir", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
   "inversion-fvg": P({ det: "ifvg", label: "inversion FVG", dir: "buy", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
   "balanced-price-range": P({ det: "bpr", label: "balanced price range", dir: "buy", zone: { top: "top", bot: "bot", from: "bull", to: "rt", type: "FVG" }, decide: "rt" }),
   "stacked-implied-fvg": S("fvg"),
   "volume-imbalance-void": P({ det: "volume-imbalance", label: "volume imbalance", dir: "buy", zone: { top: "top", bot: "bot", from: "k", to: "rt", type: "FVG" }, decide: "rt" }),
-  "opening-gaps-ndog-nwog": P({ det: "volume-imbalance", label: "opening gap / volume imbalance", dir: "buy", zone: { top: "top", bot: "bot", from: "k", to: "rt", type: "FVG" }, decide: "rt" }, pat("gap-breakaway", "breakaway gap", "buy", "gap")),
+  "opening-gaps-ndog-nwog": K,
   // M19: order block family
   "unmitigated-refined-ob": P({ det: "ob-fvg-bull", label: "unmitigated bullish order block", dir: "buy", zone: { top: "obTop", bot: "obBot", from: "ob", to: "rt", type: "ORDER_BLOCK" }, decide: "rt" }, { det: "ob-fvg-bear", label: "unmitigated bearish order block", dir: "sell", zone: { top: "obTop", bot: "obBot", from: "ob", to: "rt", type: "ORDER_BLOCK" }, decide: "rt" }),
   "breaker-mitigation-blocks": P({ det: "breaker", label: "bullish breaker block", dir: "buy", zone: { top: "bTop", bot: "bBot", from: "blk", to: "rt", type: "ORDER_BLOCK" }, decide: "rt" }, { det: "mitigation-block", label: "bullish mitigation block", dir: "buy", zone: { top: "bTop", bot: "bBot", from: "blk", to: "rt", type: "ORDER_BLOCK" }, decide: "rt" }),
@@ -146,24 +151,24 @@ const GAMES: Record<string, Game> = {
   // M20: Fibonacci
   "optimal-trade-entry": P({ det: "ote", label: "optimal trade entry", dir: "buy", keys: ["A:L", "B:H", "C:L"], decide: "C+3" }, { det: "ote-game", label: "pullback into the OTE zone (62–79%)", dir: "buy", keys: ["A:L", "B:H", "C:L"], decide: "C+3" }),
   "fibonacci-extensions": P({ det: "fib-extension", label: "extension target reached", dir: "sell", keys: ["A:L", "B:H", "D:H"], decide: "D+3" }),
-  "sd-projections": P({ det: "fib-extension", label: "projection target reached", dir: "sell", keys: ["A:L", "B:H", "D:H"], decide: "D+3" }, { det: "abcd", label: "AB=CD projection completed", dir: "buy", keys: ["B:L", "D:L"], decide: "D+3" }, { det: "three-drives", label: "third equal drive (projection) completed", dir: "sell", keys: ["D1:H", "D2:H", "D3:H"], decide: "D3+3" }),
+  "sd-projections": P({ det: "fib-extension", label: "projection target reached", dir: "sell", keys: ["A:L", "B:H", "D:H"], decide: "D+3" }),
   // M21: time and sessions
   killzones: P({ det: "london-breakout-1h", label: "London breakout of the Asian range", dir: "lv:dir", keys: ["br"], line: { lv: "hi", from: "a0", to: "a1" }, decide: "br" }),
-  "silver-bullet-macros": PA(["fvg"], { det: "silver-bullet", label: "silver bullet FVG", dir: "lv:dir", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
+  "silver-bullet-macros": P({ det: "silver-bullet", label: "silver bullet FVG", dir: "lv:dir", zone: { top: "top", bot: "bot", from: "f", to: "rt", type: "FVG" }, decide: "rt" }),
   "opens-opening-range": P({ det: "judas", label: "buy below the midnight open", dir: "buy", line: { lv: "open", from: "open", to: "low" }, keys: ["low"], decide: "low+4" }),
   "orb-ny-open": P({ det: "orb", label: "opening range breakout", dir: "lv:dir", keys: ["br"], decide: "br" }),
   "power-of-three": P({ det: "judas", label: "manipulation below the open", dir: "buy", line: { lv: "open", from: "open", to: "low" }, keys: ["low"], decide: "low+4" }),
-  "daily-bias-weekly-profile": P(pat("weekly-profile", "low of the week", "buy", "low", "low+4"), { det: "judas", label: "low of the day made early (daily profile)", dir: "buy", line: { lv: "open", from: "open", to: "low" }, keys: ["low"], decide: "low+4" }),
-  "cbdr-flout": P({ det: "london-breakout-1h", label: "London breakout of the Asian range", dir: "lv:dir", keys: ["br"], line: { lv: "hi", from: "a0", to: "a1" }, decide: "br" }), "quarterly-theory": P({ det: "london-breakout-1h", label: "London breakout of the Asian range", dir: "lv:dir", keys: ["br"], line: { lv: "hi", from: "a0", to: "a1" }, decide: "br" }), seasonality: G,
+  "daily-bias-weekly-profile": P(pat("weekly-profile", "low of the week", "buy", "low", "low+4")),
+  "cbdr-flout": K, "quarterly-theory": K, seasonality: G,
   // M22: institutional
   "institutional-order-flow": S("trends", "swings"),
   ipda: P({ det: "ipda", label: "60-day high run", dir: "sell", line: { lv: "H60", from: "now", to: "now" }, keys: ["now"], decide: "now+1" }),
   "market-maker-models": P({ det: "mmbm", label: "smart money reversal", dir: "buy", keys: ["L3:L", "mss"], decide: "mss" }),
-  "accumulation-distribution": P(pat("reaccumulation", "reaccumulation breakout", "buy", "br"), pat("rectangle", "range breakout", "buy", "br")),
+  "accumulation-distribution": P(pat("reaccumulation", "reaccumulation breakout", "buy", "br")),
   "intermarket-analysis": G, "cot-dark-pools": G,
   // M23: Wyckoff and volume
-  "wyckoff-accumulation": P({ det: "wyckoff-acc", label: "Wyckoff spring", dir: "buy", keys: ["sc:L", "sp:L"], decide: "sos" }, { det: "ssl-sweep", label: "spring: a false break below support", dir: "buy", line: { lv: "L", from: "A", to: "fk" }, decide: "fk" }),
-  "wyckoff-distribution": P({ det: "wyckoff-dist", label: "Wyckoff UTAD", dir: "sell", keys: ["sc:H", "sp:H"], decide: "sos" }, { det: "liquidity-sweep", label: "upthrust: a false break above resistance", dir: "sell", line: { lv: "L", from: "A", to: "fk" }, decide: "fk" }, pat("sfp-bear", "upthrust: a swing failure above the high", "sell", "f")),
+  "wyckoff-accumulation": P({ det: "wyckoff-acc", label: "Wyckoff spring", dir: "buy", keys: ["sc:L", "sp:L"], decide: "sos" }),
+  "wyckoff-distribution": P({ det: "wyckoff-dist", label: "Wyckoff UTAD", dir: "sell", keys: ["sc:H", "sp:H"], decide: "sos" }),
   "volume-profile": S("sr"),
   "delta-order-flow": P({ det: "delta-divergence", label: "delta divergence", dir: "sell", keys: ["A:H", "B:H"], decide: "B+3" }, pat("absorption", "absorption candle", "buy", "k", "k+1")),
   // M24: entry models
@@ -375,11 +380,17 @@ await mkdir(OUT, { recursive: true });
 const byModule = new Map<number, Compact[]>();
 const index: { id: string; lessonId: string; lessonTitle: string; module: number; tier: number; difficulty: string }[] = [];
 let short = 0;
+const knowledge: string[] = [];
 
 for (const lesson of LESSONS) {
   const game = GAMES[lesson.id];
   if (!game) {
     console.log(`✗ ${lesson.id}: no game defined`);
+    continue;
+  }
+  if (game.kind === "knowledge") {
+    knowledge.push(lesson.id);
+    console.log(`· M${String(lesson.module).padStart(2)} ${lesson.id.padEnd(32)} general knowledge (no game)`);
     continue;
   }
   const count = Math.min(8, Math.max(3, 3 + lesson.terms.length + Math.floor(lesson.blocks / 3)));
@@ -440,6 +451,16 @@ for (const lesson of LESSONS) {
       made = true;
     }
   }
+  if (levels.length < 3) {
+    // Too rare on real charts for a proper game: general knowledge instead.
+    for (const l of levels) {
+      const t = taken.findIndex((w) => w.t === l.source!.decisionTime && w.label === l.source!.label);
+      if (t >= 0) taken.splice(t, 1);
+    }
+    knowledge.push(lesson.id);
+    console.log(`· M${String(lesson.module).padStart(2)} ${lesson.id.padEnd(32)} general knowledge (only ${levels.length} real chart${levels.length === 1 ? "" : "s"})`);
+    continue;
+  }
   if (levels.length < count) short++;
   const mod = byModule.get(lesson.module) ?? [];
   mod.push(...levels);
@@ -449,5 +470,7 @@ for (const lesson of LESSONS) {
   console.log(`${levels.length === count ? "✓" : "!"} M${String(lesson.module).padStart(2)} ${lesson.id.padEnd(32)} ${levels.length}/${count} games (${wins} winners) · ${game.kind}`);
 }
 for (const [m, levels] of byModule) await writeFile(new URL(`m${m}.json`, OUT), JSON.stringify(levels));
+// Remove module files that no longer have games.
+for (const f of (await readdir(OUT)).filter((f) => f.endsWith(".json"))) if (!byModule.has(Number(f.slice(1, -5)))) await writeFile(new URL(f, OUT), "[]");
 await writeFile(new URL("../src/data/real/lessonGames.json", import.meta.url), JSON.stringify(index));
-console.log(`\n${index.length} lesson games for ${LESSONS.length} lessons (${short} lessons short of their target).`);
+console.log(`\n${index.length} lesson games for ${LESSONS.length - knowledge.length} lessons (${short} short of their target); ${knowledge.length} general-knowledge lessons: ${knowledge.join(", ")}.`);
