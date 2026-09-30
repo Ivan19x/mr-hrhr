@@ -53,11 +53,11 @@ function AcademyPage() {
         {next && (
           <Link
             to="/academy/$lessonId"
-            params={{ lessonId: next.lesson.id }}
+            params={{ lessonId: next.id }}
             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-electric)]"
           >
             <BookOpen className="h-5 w-5" />
-            {doneCount === 0 ? "Start with lesson 1" : `Continue: ${next.lesson.title}`}
+            {doneCount === 0 ? "Start with lesson 1" : `Continue: ${next.title}`}
           </Link>
         )}
       </div>

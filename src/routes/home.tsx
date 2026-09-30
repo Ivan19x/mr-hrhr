@@ -16,7 +16,8 @@ import { getDailyChallenge } from "@/services/dailyChallengeService";
 import { seasonInfo } from "@/services/rankedService";
 import { rankForXp, RANK_STEPS } from "@/data/curriculum";
 import { continueLevel, levelLabel, modeUnlocked, strategyById, timedPool, MODE_UNLOCK_RANK } from "@/lib/progression";
-import { lessonComplete, nextOpenLesson } from "@/lib/lessonProgress";
+import { lessonComplete, levelLessonGate, nextOpenLesson } from "@/lib/lessonProgress";
+import { MODULES } from "@/data/academy";
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Home — MR_HRHR" }] }),
@@ -67,6 +68,9 @@ function HomePage() {
   const nextRankXp = rank.nextXp;
   const timedOk = modeUnlocked(profile, "timed");
   const nextLesson = nextOpenLesson(profile);
+  const nextModule = nextLesson ? MODULES.find((m) => m.n === nextLesson.module) : undefined;
+  // Learn before you play: if the next level needs a lesson, Continue opens that lesson.
+  const learnFirst = levelLessonGate(profile, next);
   const lessonsDone = ALL_LESSONS.filter((x) => lessonComplete(profile, x.lesson.id)).length;
   const rankedOk = modeUnlocked(profile, "ranked");
 
@@ -105,19 +109,19 @@ function HomePage() {
       {/* Continue */}
       <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
         <Link
-          to="/play/$levelId"
-          params={{ levelId: next.id }}
-          search={{ mode: "campaign" }}
+          {...(learnFirst
+            ? { to: "/academy/$lessonId" as const, params: { lessonId: learnFirst.id } }
+            : { to: "/play/$levelId" as const, params: { levelId: next.id }, search: { mode: "campaign" as const } })}
           className="group relative flex items-center gap-5 overflow-hidden rounded-2xl border border-electric/40 bg-gradient-to-br from-electric/15 via-card to-card p-5 md:p-7"
         >
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_30px_-4px_var(--color-electric)] transition-transform group-hover:scale-110">
             <Play className="h-6 w-6 fill-current" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-widest text-electric">Continue</p>
-            <p className="mt-0.5 text-xl font-bold">{strat?.name}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-electric">{learnFirst ? "Continue: learn first" : "Continue"}</p>
+            <p className="mt-0.5 text-xl font-bold">{learnFirst ? learnFirst.title : strat?.name}</p>
             <p className="text-sm text-muted-foreground">
-              Tier {next.tier} · {levelLabel(next)}
+              {learnFirst ? `Lesson for ${strat?.name} · ${levelLabel(next)}` : `Tier ${next.tier} · ${levelLabel(next)}`}
             </p>
           </div>
           <ChevronRight className="ml-auto h-6 w-6 text-muted-foreground transition-transform group-hover:translate-x-1" />
@@ -128,7 +132,7 @@ function HomePage() {
       <section className="mt-4 grid gap-3 md:grid-cols-2">
         <Link
           to={nextLesson ? "/academy/$lessonId" : "/academy"}
-          params={nextLesson ? { lessonId: nextLesson.lesson.id } : {}}
+          params={nextLesson ? { lessonId: nextLesson.id } : {}}
           className="panel group flex items-center gap-4 p-5 transition-colors hover:border-electric"
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-electric/15">
@@ -136,8 +140,8 @@ function HomePage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-electric">Academy · {lessonsDone}/{TOTAL_LESSONS}</p>
-            <p className="truncate font-bold">{nextLesson ? nextLesson.lesson.title : "Course complete. Review anytime"}</p>
-            <p className="truncate text-sm text-muted-foreground">{nextLesson ? `Module ${nextLesson.module.n}: ${nextLesson.module.title}` : "All lessons done"}</p>
+            <p className="truncate font-bold">{nextLesson ? nextLesson.title : "Course complete. Review anytime"}</p>
+            <p className="truncate text-sm text-muted-foreground">{nextLesson ? `Module ${nextLesson.module}: ${nextModule?.title ?? ""}` : "All lessons done"}</p>
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
         </Link>

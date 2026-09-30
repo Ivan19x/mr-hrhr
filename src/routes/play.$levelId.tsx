@@ -4,7 +4,7 @@ import { PlaySession } from "@/components/PlaySession";
 import { getLevelById } from "@/services/levelService";
 import { levelUnlocked, levelsFor, lockReason, modeUnlocked } from "@/lib/progression";
 import { findLessonGame } from "@/data/levels";
-import { lessonGameUnlocked, lessonGames } from "@/lib/lessonProgress";
+import { lessonGameUnlocked, lessonGames, levelLessonGate } from "@/lib/lessonProgress";
 import { rankedKey } from "@/services/rankedService";
 import { BLOWN_BALANCE, RECAP_XP_COST, dayKey, getProfile, recapitalise } from "@/services/progressService";
 import type { GameMode, Level, Profile } from "@/types/game";
@@ -69,6 +69,20 @@ function PlayPage() {
   if (mode === "campaign" && !game) {
     const list = levelsFor(level.strategyId);
     const idx = list.findIndex((l) => l.id === level.id);
+    const learn = idx >= 0 && levelUnlocked(profile, list, idx) ? levelLessonGate(profile, list[idx]!) : null;
+    if (learn)
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-4xl">📘</p>
+          <p className="text-xl font-bold">Learn this first</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            This level uses what the lesson <span className="font-semibold text-foreground">{learn.title}</span> teaches. Finish the lesson (its quiz and its game), then come back.
+          </p>
+          <Link to="/academy/$lessonId" params={{ lessonId: learn.id }} className="mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+            Open the lesson
+          </Link>
+        </div>
+      );
     if (idx >= 0 && !levelUnlocked(profile, list, idx)) {
       const reason = lockReason(profile, level.strategyId);
       return (

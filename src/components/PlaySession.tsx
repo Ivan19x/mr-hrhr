@@ -33,7 +33,8 @@ import { simulateTrade, riskRewardRatio } from "@/engine/trade";
 import { matchMarks } from "@/engine/marking";
 import { SPEED_MS, type ReplaySpeed } from "@/engine/replay";
 import { TUTORIALS } from "@/data/tutorials";
-import { LESSON_GAMES, findLessonGame, loadLevel } from "@/data/levels";
+import { LESSON_GAMES, findLessonGame, findLevelMeta, loadLevel } from "@/data/levels";
+import { levelLessonGate } from "@/lib/lessonProgress";
 import { LevelWalkthrough } from "@/components/LevelWalkthrough";
 import { Diagram } from "@/components/academy/Diagram";
 import { CandleFormation } from "@/components/CandleFormation";
@@ -835,7 +836,16 @@ export function PlaySession({ baseLevel, profile, mode, onNextChart }: Props) {
               analystNote={analystNote}
               flipped={flipped}
               onRetry={() => window.location.reload()}
-              {...(nextId ? { onNext: () => navigate({ to: "/play/$levelId", params: { levelId: nextId }, search: { mode: "campaign" } }) } : {})}
+              {...(nextId
+                ? (() => {
+                    // Learn before you play: the next level may need a lesson first.
+                    const meta = findLevelMeta(nextId);
+                    const learn = meta && !lessonGame ? levelLessonGate(profile, meta) : null;
+                    return learn
+                      ? { onNext: () => navigate({ to: "/academy/$lessonId", params: { lessonId: learn.id } }), nextLabel: `Learn next: ${learn.title}` }
+                      : { onNext: () => navigate({ to: "/play/$levelId", params: { levelId: nextId }, search: { mode: "campaign" } }) };
+                  })()
+                : {})}
               {...(onNextChart ? { onNextChart } : {})}
               onBack={exitBack}
             />
@@ -1125,6 +1135,7 @@ function ReviewPanel({
   flipped,
   onRetry,
   onNext,
+  nextLabel,
   onNextChart,
   onBack,
 }: {
@@ -1136,6 +1147,7 @@ function ReviewPanel({
   flipped: boolean;
   onRetry: () => void;
   onNext?: () => void;
+  nextLabel?: string;
   onNextChart?: () => void;
   onBack: () => void;
 }) {
@@ -1275,7 +1287,7 @@ function ReviewPanel({
               </button>
               {onNext && (
                 <button onClick={onNext} className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
-                  Next level <ChevronRight className="h-4 w-4" />
+                  {nextLabel ?? "Next level"} <ChevronRight className="h-4 w-4" />
                 </button>
               )}
             </div>

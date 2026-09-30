@@ -72,3 +72,11 @@ export function findLesson(id: string) {
 }
 
 export const TOTAL_LESSONS = ALL_LESSONS.length;
+
+if (import.meta.env?.DEV) {
+  import("./lessonList.json").then(({ default: list }) => {
+    const a = ALL_LESSONS.map((x) => x.lesson.id).join(",");
+    const b = (list as { id: string }[]).map((x) => x.id).join(",");
+    if (a !== b) console.warn("[MR_HRHR] lessonList.json is out of date: run `node scripts/dump-lessons.mjs`.");
+  });
+}

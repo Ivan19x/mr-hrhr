@@ -1,5 +1,7 @@
 // Writes a small summary of every Academy lesson (title, module, size, quiz) to
-// scripts/.cache/lessons.json for scripts/build-lesson-games.ts. Loads the lesson
+// scripts/.cache/lessons.json for scripts/build-lesson-games.ts, and the ordered
+// lesson list src/data/academy/lessonList.json used by the unlock rules.
+// Re-run after adding, removing or reordering lessons. Loads the lesson
 // TypeScript through Vite so path aliases and JSON imports resolve.
 //   node scripts/dump-lessons.mjs
 import { mkdir, writeFile } from "node:fs/promises";
@@ -30,7 +32,9 @@ try {
   );
   await mkdir(new URL("./.cache/", import.meta.url), { recursive: true });
   await writeFile(new URL("./.cache/lessons.json", import.meta.url), JSON.stringify(lessons));
-  console.log(`${lessons.length} lessons written to scripts/.cache/lessons.json`);
+  // A tiny ordered list for the unlock rules (so game pages don't load all lesson content).
+  await writeFile(new URL("../src/data/academy/lessonList.json", import.meta.url), JSON.stringify(lessons.map((l) => ({ id: l.id, title: l.title, module: l.module }))));
+  console.log(`${lessons.length} lessons written to scripts/.cache/lessons.json and src/data/academy/lessonList.json`);
 } finally {
   await server.close();
 }

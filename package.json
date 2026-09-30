@@ -15,7 +15,8 @@
     "charts:update": "npm run charts:fetch && npm run charts:examples && npm run charts:levels && npm run charts:lessons && npm run charts:glossary",
     "charts:examples": "node scripts/extract-examples.ts",
     "charts:glossary": "node scripts/build-glossary.mjs",
-    "charts:lessons": "node scripts/dump-lessons.mjs && node scripts/build-lesson-games.ts"
+    "charts:lessons": "node scripts/dump-lessons.mjs && node scripts/build-lesson-games.ts",
+    "check:gates": "node scripts/check-gates.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

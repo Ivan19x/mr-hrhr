@@ -3,11 +3,11 @@ import { motion } from "framer-motion";
 import { ArrowLeft, BookOpen, CheckCircle2, Gamepad2, GraduationCap, Lock, Star, Timer } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useProfile } from "@/hooks/use-profile";
-import { levelLabel, levelUnlocked, levelsFor, lockReason, strategyById, strategyStars } from "@/lib/progression";
+import { levelLabel, levelsFor, lockReason, strategyById, strategyStars } from "@/lib/progression";
 import type { Level } from "@/types/game";
 import { ALL_LESSONS } from "@/data/academy";
 import { LESSON_STRATEGY } from "@/data/academy/lessonStrategy";
-import { gamesDone, lessonComplete, lessonGames, lessonUnlocked, quizPassed } from "@/lib/lessonProgress";
+import { gamesDone, lessonComplete, lessonGames, lessonUnlocked, levelLessonGate, levelOpen, quizPassed } from "@/lib/lessonProgress";
 
 export const Route = createFileRoute("/levels/$strategyId")({
   head: () => ({ meta: [{ title: "Levels — MR_HRHR" }] }),
@@ -128,7 +128,8 @@ function LevelSelect() {
               <p className="mb-3 text-xs text-muted-foreground">{GROUP_NOTE[g]}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {inGroup.map(({ l, idx }) => {
-                  const unlocked = levelUnlocked(profile, levels, idx);
+                  const unlocked = levelOpen(profile, levels, idx);
+                  const learn = !unlocked ? levelLessonGate(profile, l) : null;
                   const res = profile.results[l.id];
                   const short = l.difficulty === "tutorial" ? "T" : l.difficulty === "exam" ? "E" : (levelLabel(l).split(" ")[1] ?? "");
                   return (
@@ -139,6 +140,7 @@ function LevelSelect() {
                       transition={{ delay: idx * 0.03 }}
                       disabled={!unlocked}
                       onClick={() => navigate({ to: "/play/$levelId", params: { levelId: l.id }, search: { mode: "campaign" } })}
+                      title={learn ? `Learn first: ${learn.title}` : undefined}
                       className={`panel flex flex-col items-center p-5 transition-all ${
                         unlocked ? "hover:-translate-y-0.5 hover:border-electric" : "cursor-not-allowed opacity-45"
                       } ${!res && unlocked ? "border-electric/60 shadow-[0_0_20px_-10px_var(--color-electric)]" : ""}`}
@@ -151,6 +153,7 @@ function LevelSelect() {
                         ))}
                       </div>
                       {res && <span className="font-num mt-1 text-[11px] text-muted-foreground">best {res.score}</span>}
+                      {learn && <span className="mt-1 line-clamp-2 text-center text-[10px] text-electric">Learn: {learn.title}</span>}
                     </motion.button>
                   );
                 })}
